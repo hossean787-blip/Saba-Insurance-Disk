@@ -15,12 +15,19 @@ class MainActivity : Activity() {
     private lateinit var root: LinearLayout
     private val navy = Color.rgb(14,25,45)
 
-    class Store(activity: Activity): SQLiteOpenHelper(activity,"insurance.db",null,1) {
+    class Store(activity: Activity): SQLiteOpenHelper(activity,"insurance.db",null,2) {
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE workshops (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL)")
             db.execSQL("CREATE TABLE employees (id INTEGER PRIMARY KEY AUTOINCREMENT, workshop_id INTEGER NOT NULL, name TEXT NOT NULL, national_id TEXT NOT NULL, insurance_no TEXT NOT NULL)")
         }
-        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if(oldVersion<2) {
+                db.execSQL("ALTER TABLE workshops ADD COLUMN contract_row TEXT NOT NULL DEFAULT '000'")
+                db.execSQL("ALTER TABLE workshops ADD COLUMN employer TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE workshops ADD COLUMN address TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE workshops ADD COLUMN insurance_rate REAL NOT NULL DEFAULT 0")
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,7 +66,7 @@ class MainActivity : Activity() {
     private fun home() {
         page("لیست دیسک صبا")
         text("نسخه ۰.۲ • اطلاعات روی همین گوشی ذخیره می‌شود")
-        button("کارگاه‌ها") { workshops() }
+        button("کارگاه‌ها") { startActivity(android.content.Intent(this, WorkshopActivity::class.java)) }
         button("کارکنان") { employees() }
         button("لیست ماهانه (در دست توسعه)") { notice() }
         button("خروجی DBF (در دست توسعه)") { notice() }
