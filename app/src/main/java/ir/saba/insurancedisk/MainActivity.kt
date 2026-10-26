@@ -17,7 +17,7 @@ class MainActivity : Activity() {
 
     class Store(activity: Activity): SQLiteOpenHelper(activity,"insurance.db",null,2) {
         override fun onCreate(db: SQLiteDatabase) {
-            db.execSQL("CREATE TABLE workshops (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL)")
+            db.execSQL("CREATE TABLE workshops (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL, contract_row TEXT NOT NULL DEFAULT '000', employer TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', insurance_rate REAL NOT NULL DEFAULT 0)")
             db.execSQL("CREATE TABLE employees (id INTEGER PRIMARY KEY AUTOINCREMENT, workshop_id INTEGER NOT NULL, name TEXT NOT NULL, national_id TEXT NOT NULL, insurance_no TEXT NOT NULL)")
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
