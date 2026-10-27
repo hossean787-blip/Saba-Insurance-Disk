@@ -34,6 +34,22 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Configure persistent signing
+        env:
+          SABA_KEYSTORE_BASE64: ${{ secrets.SABA_KEYSTORE_BASE64 }}
+          SABA_KEYSTORE_PASSWORD: ${{ secrets.SABA_KEYSTORE_PASSWORD }}
+          SABA_KEY_ALIAS: ${{ secrets.SABA_KEY_ALIAS }}
+          SABA_KEY_PASSWORD: ${{ secrets.SABA_KEY_PASSWORD }}
+        run: |
+          if [ -n "$SABA_KEYSTORE_BASE64" ]; then
+            printf '%s' "$SABA_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/saba-signing.jks"
+            echo "SABA_KEYSTORE_PATH=$RUNNER_TEMP/saba-signing.jks" >> "$GITHUB_ENV"
+            echo "SABA_KEYSTORE_PASSWORD=$SABA_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "SABA_KEY_ALIAS=$SABA_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "SABA_KEY_PASSWORD=$SABA_KEY_PASSWORD" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Persistent signing is not configured. Debug APK may not upgrade a previous installation."
+          fi
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Upload debug APK
