@@ -141,30 +141,43 @@ class WorkshopActivity : Activity() {
         root.addView(searchBox,LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(12);bottomMargin=dp(18) })
 
         root.addView(label("فهرست کارگاه‌ها",17f,blue).apply {
-            setTypeface(null,Typeface.BOLD); setPadding(0,0,0,dp(8))
+            setTypeface(null,Typeface.BOLD); setPadding(0,0,0,dp(9))
         })
-        val results=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        val table=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; background=shape(Color.WHITE,13,Color.rgb(209,224,241)); setPadding(dp(4),dp(4),dp(4),dp(4)) }
+        fun tableRow(columns:List<String>, header:Boolean, id:Long?=null, index:Int=0) {
+            val row=LinearLayout(this).apply {
+                orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL; gravity=Gravity.CENTER_VERTICAL
+                background=shape(if(header) blue else if(index%2==0) Color.WHITE else Color.rgb(235,244,255),6)
+                if(id!=null) setOnClickListener { load(id) }
+            }
+            columns.forEachIndexed { columnIndex, value ->
+                val cell=label(value,if(header) 12f else 12.5f,if(header) Color.WHITE else ink).apply {
+                    gravity=Gravity.CENTER; setPadding(dp(3),dp(12),dp(3),dp(12))
+                    if(header) setTypeface(null,Typeface.BOLD)
+                }
+                row.addView(cell,LinearLayout.LayoutParams(0,-2,if(columnIndex==2) 1.7f else 1f))
+            }
+            table.addView(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(2) })
+        }
+        tableRow(listOf("کد کارگاه","ردیف پیمان","نام کارگاه","نام کارفرما"),true)
         val arg="%$search%"
         var count=0
         store.readableDatabase.rawQuery(
-            "SELECT id,code,contract_row,name FROM workshops WHERE code LIKE ? OR contract_row LIKE ? OR name LIKE ? OR employer LIKE ? ORDER BY id DESC",
+            "SELECT id,code,contract_row,name,employer FROM workshops WHERE code LIKE ? OR contract_row LIKE ? OR name LIKE ? OR employer LIKE ? ORDER BY id DESC",
             arrayOf(arg,arg,arg,arg)
         ).use { cursor ->
             while(cursor.moveToNext()) {
-                count++
                 val id=cursor.getLong(0)
-                val row=label("${cursor.getString(3)}   |   ${cursor.getString(1)}" +
-                    (cursor.getString(2)?.takeIf { it.isNotBlank() && it!="000" }?.let { "  /  $it" } ?: ""),13f,ink).apply {
-                    background=shape(Color.WHITE,11,Color.rgb(216,228,242))
-                    setPadding(dp(12),dp(11),dp(12),dp(11))
-                    setOnClickListener { load(id) }
-                }
-                results.addView(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
+                tableRow(listOf(cursor.getString(1) ?: "",
+                    (cursor.getString(2) ?: "").takeUnless { it=="000" } ?: "—",
+                    cursor.getString(3) ?: "", cursor.getString(4) ?: ""),false,id,count)
+                count++
             }
         }
-        if(count==0) results.addView(label("کارگاهی برای نمایش وجود ندارد.",13f,muted))
-        root.addView(results,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(18) })
-
+        if(count==0) table.addView(label("کارگاهی برای نمایش وجود ندارد.",13f,muted).apply {
+            gravity=Gravity.CENTER;setPadding(dp(8),dp(16),dp(8),dp(16))
+        })
+        root.addView(table,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(18) })
         root.addView(label("اطلاعات کارگاه",17f,blue).apply {
             setTypeface(null,Typeface.BOLD); setPadding(0,0,0,dp(10))
         })
