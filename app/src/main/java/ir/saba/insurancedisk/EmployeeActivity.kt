@@ -215,6 +215,7 @@ class EmployeeActivity : Activity() {
             if(id==null) {
                 db.beginTransaction()
                 try {
+                    data.put("workshop_id",0L)
                     val newId=db.insertOrThrow("employees",null,data)
                     val personnel=newId.toString().padStart(6,'0')
                     db.execSQL("UPDATE employees SET personnel_no=? WHERE id=?",arrayOf(personnel,newId))
