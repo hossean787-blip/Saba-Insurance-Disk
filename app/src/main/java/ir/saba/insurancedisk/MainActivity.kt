@@ -119,6 +119,12 @@ class MainActivity : Activity() {
         tile("درباره برنامه","صبا • نسخه آزمایشی ۰.۳","ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
             android.app.AlertDialog.Builder(this).setTitle("صبا").setMessage("نرم‌افزار لیست دیسک بیمه — نسخه آزمایشی. خروجی DBF هنوز آماده نیست.").setPositiveButton("باشه",null).show()
         }
+        shell.setOnApplyWindowInsetsListener { view, insets ->
+            val top=if(android.os.Build.VERSION.SDK_INT>=30) insets.getInsets(android.view.WindowInsets.Type.statusBars()).top else insets.systemWindowInsetTop
+            val bottom=if(android.os.Build.VERSION.SDK_INT>=30) insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom else insets.systemWindowInsetBottom
+            view.setPadding(0,top,0,bottom+24)
+            insets
+        }
         setContentView(shell)
     }
 
