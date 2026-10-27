@@ -102,6 +102,13 @@ class WorkshopActivity : Activity() {
             setBackgroundColor(Color.rgb(242,247,253))
         }
         val scroll=ScrollView(this).apply { fillViewport=true; addView(root) }
+        scroll.clipToPadding=false
+        scroll.setOnApplyWindowInsetsListener { view, insets ->
+            val top=if(android.os.Build.VERSION.SDK_INT>=30) insets.getInsets(android.view.WindowInsets.Type.statusBars()).top else insets.systemWindowInsetTop
+            val bottom=if(android.os.Build.VERSION.SDK_INT>=30) insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom else insets.systemWindowInsetBottom
+            view.setPadding(0,top,0,bottom+dp(12))
+            insets
+        }
         setContentView(scroll)
 
         val header=LinearLayout(this).apply {
