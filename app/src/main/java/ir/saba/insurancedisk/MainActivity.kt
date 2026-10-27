@@ -26,11 +26,13 @@ class MainActivity : Activity() {
                 db.execSQL("ALTER TABLE workshops ADD COLUMN employer TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE workshops ADD COLUMN address TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE workshops ADD COLUMN insurance_rate REAL NOT NULL DEFAULT 0")
-                if(oldVersion<3) {
+            }
+            if(oldVersion<3) {
                 val additions=listOf("personnel_no","first_name","last_name","father_name","birth_cert_no","birth_date","issue_city","gender","nationality","job_title","job_code")
                 additions.forEach { db.execSQL("ALTER TABLE employees ADD COLUMN $it TEXT NOT NULL DEFAULT ''") }
                 db.execSQL("UPDATE employees SET personnel_no=printf('%06d',id), first_name=name WHERE personnel_no=''")
             }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
