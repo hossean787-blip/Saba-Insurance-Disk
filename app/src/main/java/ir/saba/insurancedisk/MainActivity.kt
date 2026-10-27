@@ -64,12 +64,62 @@ class MainActivity : Activity() {
     }
 
     private fun home() {
-        page("لیست دیسک صبا")
-        text("نسخه ۰.۲ • اطلاعات روی همین گوشی ذخیره می‌شود")
-        button("کارگاه‌ها") { startActivity(android.content.Intent(this, WorkshopActivity::class.java)) }
-        button("کارکنان") { employees() }
-        button("لیست ماهانه (در دست توسعه)") { notice() }
-        button("خروجی DBF (در دست توسعه)") { notice() }
+        window.statusBarColor=Color.rgb(4,43,99)
+        val shell=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL
+            layoutDirection=View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(Color.rgb(241,246,254))
+        }
+        val header=LinearLayout(this).apply {
+            orientation=LinearLayout.HORIZONTAL
+            gravity=android.view.Gravity.CENTER_VERTICAL
+            setPadding(22,38,22,32)
+            setBackgroundColor(Color.rgb(6,53,117))
+        }
+        header.addView(ImageView(this).apply {
+            setImageResource(R.drawable.saba_launcher)
+            layoutParams=LinearLayout.LayoutParams(72,72)
+        })
+        val heading=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(18,0,0,0) }
+        heading.addView(TextView(this).apply { text="صبا";textSize=33f;setTextColor(Color.WHITE);setTypeface(null,1) })
+        heading.addView(TextView(this).apply { text="لیست دیسک تأمین اجتماعی";textSize=14f;setTextColor(Color.rgb(217,234,255)) })
+        header.addView(heading)
+        shell.addView(header)
+        val scroll=ScrollView(this)
+        val menu=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(22,24,22,24) }
+        scroll.addView(menu)
+        shell.addView(scroll)
+        fun tile(title:String,subtitle:String,symbol:String,bg:Int,fg:Int,click:()->Unit) {
+            val card=LinearLayout(this).apply {
+                orientation=LinearLayout.HORIZONTAL
+                gravity=android.view.Gravity.CENTER_VERTICAL
+                setPadding(22,23,22,23)
+                background=android.graphics.drawable.GradientDrawable().apply {
+                    setColor(bg);cornerRadius=22f
+                    setStroke(2,Color.rgb(215,225,239))
+                }
+                elevation=5f
+                setOnClickListener { click() }
+            }
+            val mark=TextView(this).apply { text=symbol;textSize=28f;setTextColor(fg);gravity=android.view.Gravity.CENTER }
+            card.addView(mark,LinearLayout.LayoutParams(64,76))
+            val labels=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(12,0,0,0) }
+            labels.addView(TextView(this).apply { text=title;textSize=20f;setTypeface(null,1);setTextColor(fg) })
+            labels.addView(TextView(this).apply { text=subtitle;textSize=13f;setTextColor(Color.rgb(78,97,126)) })
+            card.addView(labels,LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.WRAP_CONTENT,1f))
+            card.addView(TextView(this).apply { text="‹";textSize=28f;setTextColor(fg) })
+            menu.addView(card,LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin=16 })
+        }
+        tile("کارگاه‌ها","مدیریت مشخصات کارگاه‌ها","▣",Color.rgb(220,239,255),Color.rgb(4,92,188)) {
+            startActivity(android.content.Intent(this,WorkshopActivity::class.java))
+        }
+        tile("کارکنان","مدیریت اطلاعات کارکنان","♟",Color.rgb(224,249,239),Color.rgb(6,130,83)) { employees() }
+        tile("لیست بیمه","ثبت و تهیه لیست ماهانه • در دست توسعه","▤",Color.rgb(255,240,219),Color.rgb(188,106,0)) { notice() }
+        tile("تنظیمات","پیکربندی برنامه • در دست توسعه","⚙",Color.rgb(236,230,255),Color.rgb(98,69,194)) { notice() }
+        tile("درباره برنامه","صبا • نسخه آزمایشی ۰.۳","ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
+            android.app.AlertDialog.Builder(this).setTitle("صبا").setMessage("نرم‌افزار لیست دیسک بیمه — نسخه آزمایشی. خروجی DBF هنوز آماده نیست.").setPositiveButton("باشه",null).show()
+        }
+        setContentView(shell)
     }
 
     private fun notice() = Toast.makeText(this,"این قابلیت هنوز آماده نیست",Toast.LENGTH_LONG).show()
