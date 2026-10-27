@@ -101,7 +101,7 @@ class WorkshopActivity : Activity() {
             setPadding(dp(15),dp(16),dp(15),dp(22))
             setBackgroundColor(Color.rgb(242,247,253))
         }
-        val scroll=ScrollView(this).apply { fillViewport=true; addView(root) }
+        val scroll=ScrollView(this).apply { isFillViewport=true; addView(root) }
         scroll.clipToPadding=false
         scroll.setOnApplyWindowInsetsListener { view, insets ->
             val top=if(android.os.Build.VERSION.SDK_INT>=30) insets.getInsets(android.view.WindowInsets.Type.statusBars()).top else insets.systemWindowInsetTop
