@@ -48,7 +48,8 @@ jobs:
             echo "SABA_KEY_ALIAS=$SABA_KEY_ALIAS" >> "$GITHUB_ENV"
             echo "SABA_KEY_PASSWORD=$SABA_KEY_PASSWORD" >> "$GITHUB_ENV"
           else
-            echo "::warning::Persistent signing is not configured. Debug APK may not upgrade a previous installation."
+            echo "::error::Stable signing secrets are required to produce an installable upgrade APK."
+            exit 1
           fi
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
