@@ -20,8 +20,8 @@ class WorkshopActivity : Activity() {
     private lateinit var rate: EditText
     private var selectedId: Long? = null
     private var editing = false
-    private val navy = Color.rgb(14,25,45)
-    private val white = Color.WHITE
+    private val navy = Color.rgb(245,248,254)
+    private val white = Color.rgb(12,47,95)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,12 +31,12 @@ class WorkshopActivity : Activity() {
 
     private fun field(label: String, numeric: Boolean = false): EditText {
         root.addView(TextView(this).apply {
-            text=label; textSize=14f; setTextColor(Color.rgb(191,213,234))
+            text=label; textSize=14f; setTextColor(Color.rgb(61,86,120))
             setPadding(0,10,0,2)
         })
         return EditText(this).also {
-            it.setTextColor(white)
-            it.setHintTextColor(Color.LTGRAY)
+            it.setTextColor(Color.rgb(12,47,95))
+            it.setHintTextColor(Color.GRAY)
             it.setSingleLine(label!="آدرس کارگاه")
             if(numeric) it.inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
             it.isEnabled=false
@@ -45,19 +45,19 @@ class WorkshopActivity : Activity() {
     }
 
     private fun action(label:String, onClick:()->Unit) {
-        root.addView(Button(this).apply { text=label; isAllCaps=false; setOnClickListener { onClick() } })
+        root.addView(Button(this).apply { text=label; isAllCaps=false; setTextColor(Color.rgb(9,62,132)); setOnClickListener { onClick() } })
     }
 
     private fun render(search:String="") {
         root=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
             layoutDirection=View.LAYOUT_DIRECTION_RTL
-            setPadding(28,28,28,28)
+            setPadding(22,22,22,22)
             setBackgroundColor(navy)
         }
         val scroll=ScrollView(this).apply { addView(root) }
         setContentView(scroll)
-        root.addView(TextView(this).apply { text="مشخصات کارگاه‌ها"; textSize=25f; setTextColor(white) })
+        root.addView(TextView(this).apply { text="مشخصات کارگاه‌ها"; textSize=25f; setTextColor(white);setTypeface(null,1) })
         action("جدید") { clear(true) }
         action("ویرایش") { if(selectedId!=null) enable(true) else toast("ابتدا کارگاه را انتخاب کنید") }
         action("حذف") { deleteSelected() }
@@ -70,7 +70,7 @@ class WorkshopActivity : Activity() {
                 .setNegativeButton("لغو",null).show()
         }
         action("خروج") { finish() }
-        root.addView(TextView(this).apply { text="فهرست کارگاه‌ها (برای انتخاب لمس کنید)"; textSize=17f; setTextColor(white) })
+        root.addView(TextView(this).apply { text="فهرست کارگاه‌ها (برای انتخاب لمس کنید)"; textSize=17f; setTextColor(white);setPadding(0,20,0,12) })
         val sql="SELECT id,code,contract_row,name,employer,address,insurance_rate FROM workshops WHERE code LIKE ? OR contract_row LIKE ? OR name LIKE ? OR employer LIKE ? ORDER BY id DESC"
         val arg="%$search%"
         store.readableDatabase.rawQuery(sql,arrayOf(arg,arg,arg,arg)).use { c ->
