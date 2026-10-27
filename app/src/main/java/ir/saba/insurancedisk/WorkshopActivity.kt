@@ -2,10 +2,13 @@ package ir.saba.insurancedisk
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.os.Bundle
 import android.content.ContentValues
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.os.Bundle
 import android.text.InputType
+import android.view.Gravity
 import android.view.View
 import android.widget.*
 
@@ -20,72 +23,157 @@ class WorkshopActivity : Activity() {
     private lateinit var rate: EditText
     private var selectedId: Long? = null
     private var editing = false
-    private val navy = Color.rgb(245,248,254)
-    private val white = Color.rgb(12,47,95)
+    private val blue = Color.rgb(8, 58, 125)
+    private val gold = Color.rgb(234, 174, 52)
+    private val ink = Color.rgb(23, 48, 83)
+    private val muted = Color.rgb(92, 111, 137)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = Color.rgb(5, 39, 88)
         store = MainActivity.Store(this)
         render()
     }
 
-    private fun field(label: String, numeric: Boolean = false): EditText {
-        root.addView(TextView(this).apply {
-            text=label; textSize=14f; setTextColor(Color.rgb(61,86,120))
-            setPadding(0,10,0,2)
-        })
-        return EditText(this).also {
-            it.setTextColor(Color.rgb(12,47,95))
-            it.setHintTextColor(Color.GRAY)
-            it.setSingleLine(label!="آدرس کارگاه")
-            if(numeric) it.inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-            it.isEnabled=false
-            root.addView(it)
+    private fun dp(value:Int):Int = (value * resources.displayMetrics.density + 0.5f).toInt()
+    private fun shape(color:Int, radius:Int=16, stroke:Int=0):GradientDrawable =
+        GradientDrawable().apply {
+            setColor(color); cornerRadius=dp(radius).toFloat()
+            if(stroke!=0) setStroke(dp(1),stroke)
         }
+
+    private fun label(value:String,size:Float=14f,color:Int=ink):TextView =
+        TextView(this).apply {
+            text=value; textSize=size; setTextColor(color)
+            gravity=Gravity.RIGHT or Gravity.CENTER_VERTICAL
+        }
+
+    private fun button(title:String, icon:String, color:Int, action:()->Unit):TextView =
+        label("$icon  $title",14f,color).apply {
+            gravity=Gravity.CENTER
+            setTypeface(null,Typeface.BOLD)
+            background=shape(Color.WHITE,13,Color.rgb(213,225,241))
+            elevation=dp(2).toFloat()
+            setOnClickListener { action() }
+        }
+
+    private fun addButtonRow(actions:List<Triple<String,String,()->Unit>>) {
+        val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL }
+        actions.forEach { (title,icon,action) ->
+            val item=button(title,icon,blue,action)
+            row.addView(item,LinearLayout.LayoutParams(0,dp(56),1f).apply { setMargins(dp(3),dp(4),dp(3),dp(4)) })
+        }
+        root.addView(row)
     }
 
-    private fun action(label:String, onClick:()->Unit) {
-        root.addView(Button(this).apply { text=label; isAllCaps=false; setTextColor(Color.rgb(9,62,132)); setOnClickListener { onClick() } })
+    private fun field(container:LinearLayout, title:String, decimal:Boolean=false, numeric:Boolean=false):EditText {
+        val box=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL
+            background=shape(Color.WHITE,12,Color.rgb(220,230,242))
+            setPadding(dp(10),dp(8),dp(10),dp(4))
+        }
+        box.addView(label(title,12f,muted))
+        val edit=EditText(this).apply {
+            textSize=15f; setTextColor(ink); setHintTextColor(muted)
+            setSingleLine(title!="آدرس کارگاه")
+            if(numeric) inputType=InputType.TYPE_CLASS_NUMBER or (if(decimal) InputType.TYPE_NUMBER_FLAG_DECIMAL else 0)
+            isEnabled=false
+            minHeight=dp(40)
+        }
+        box.addView(edit,LinearLayout.LayoutParams(-1,dp(46)))
+        container.addView(box,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(10) })
+        return edit
+    }
+
+    private fun pair(firstTitle:String, secondTitle:String, firstNumeric:Boolean=false, secondNumeric:Boolean=false):Pair<EditText,EditText> {
+        val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL }
+        val right=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        val left=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        row.addView(right,LinearLayout.LayoutParams(0,-2,1f).apply { leftMargin=dp(5) })
+        row.addView(left,LinearLayout.LayoutParams(0,-2,1f).apply { rightMargin=dp(5) })
+        root.addView(row)
+        return field(right,firstTitle,numeric=firstNumeric) to field(left,secondTitle,numeric=secondNumeric)
     }
 
     private fun render(search:String="") {
         root=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL
-            layoutDirection=View.LAYOUT_DIRECTION_RTL
-            setPadding(22,22,22,22)
-            setBackgroundColor(navy)
+            orientation=LinearLayout.VERTICAL; layoutDirection=View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(15),dp(16),dp(15),dp(22))
+            setBackgroundColor(Color.rgb(242,247,253))
         }
-        val scroll=ScrollView(this).apply { addView(root) }
+        val scroll=ScrollView(this).apply { fillViewport=true; addView(root) }
         setContentView(scroll)
-        root.addView(TextView(this).apply { text="مشخصات کارگاه‌ها"; textSize=25f; setTextColor(white);setTypeface(null,1) })
-        action("جدید") { clear(true) }
-        action("ویرایش") { if(selectedId!=null) enable(true) else toast("ابتدا کارگاه را انتخاب کنید") }
-        action("حذف") { deleteSelected() }
-        action("ثبت") { save() }
-        action("لغو") { clear(false) }
-        action("جست‌وجو") {
-            val q=EditText(this).apply { hint="کد، ردیف، نام کارگاه یا کارفرما" }
-            AlertDialog.Builder(this).setTitle("جست‌وجوی کارگاه").setView(q)
-                .setPositiveButton("جست‌وجو") { _,_-> render(q.text.toString().trim()) }
-                .setNegativeButton("لغو",null).show()
+
+        val header=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL
+            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(6,45,104),Color.rgb(10,109,197))).apply { cornerRadius=dp(20).toFloat() }
+            setPadding(dp(18),dp(18),dp(18),dp(19))
         }
-        action("خروج") { finish() }
-        root.addView(TextView(this).apply { text="فهرست کارگاه‌ها (برای انتخاب لمس کنید)"; textSize=17f; setTextColor(white);setPadding(0,20,0,12) })
-        val sql="SELECT id,code,contract_row,name,employer,address,insurance_rate FROM workshops WHERE code LIKE ? OR contract_row LIKE ? OR name LIKE ? OR employer LIKE ? ORDER BY id DESC"
+        header.addView(label("▣  مشخصات کارگاه‌ها",23f,Color.WHITE).apply { setTypeface(null,Typeface.BOLD) })
+        header.addView(label("صبا  |  مدیریت اطلاعات کارگاه‌های بیمه",12f,Color.rgb(222,235,255)).apply { setPadding(0,dp(6),0,0) })
+        root.addView(header,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(14) })
+
+        addButtonRow(listOf(
+            Triple("جدید","＋",{ clear(true) }),
+            Triple("ویرایش","✎",{ if(selectedId!=null) enable(true) else toast("ابتدا کارگاه را انتخاب کنید") }),
+            Triple("حذف","×",{ deleteSelected() })
+        ))
+        addButtonRow(listOf(
+            Triple("ثبت","✓",{ save() }),
+            Triple("لغو","↶",{ clear(false) }),
+            Triple("خروج","⌂",{ finish() })
+        ))
+
+        val searchBox=LinearLayout(this).apply {
+            orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL
+            gravity=Gravity.CENTER_VERTICAL
+            background=shape(Color.WHITE,14,Color.rgb(207,222,241))
+            setPadding(dp(12),dp(5),dp(12),dp(5))
+        }
+        val searchInput=EditText(this).apply {
+            hint="جست‌وجوی کد، ردیف، نام کارگاه یا کارفرما"
+            setSingleLine(true); textSize=13f; setTextColor(ink)
+            setText(search); setSelection(search.length)
+        }
+        searchBox.addView(searchInput,LinearLayout.LayoutParams(0,dp(49),1f))
+        searchBox.addView(button("جست‌وجو","⌕",blue) { render(searchInput.text.toString().trim()) },
+            LinearLayout.LayoutParams(dp(110),dp(43)))
+        root.addView(searchBox,LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(12);bottomMargin=dp(18) })
+
+        root.addView(label("فهرست کارگاه‌ها",17f,blue).apply {
+            setTypeface(null,Typeface.BOLD); setPadding(0,0,0,dp(8))
+        })
+        val results=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         val arg="%$search%"
-        store.readableDatabase.rawQuery(sql,arrayOf(arg,arg,arg,arg)).use { c ->
-            while(c.moveToNext()) {
-                val id=c.getLong(0)
-                val label="${c.getString(3)} | ${c.getString(1)} | ${c.getString(2)}"
-                action(label) { load(id) }
+        var count=0
+        store.readableDatabase.rawQuery(
+            "SELECT id,code,contract_row,name FROM workshops WHERE code LIKE ? OR contract_row LIKE ? OR name LIKE ? OR employer LIKE ? ORDER BY id DESC",
+            arrayOf(arg,arg,arg,arg)
+        ).use { cursor ->
+            while(cursor.moveToNext()) {
+                count++
+                val id=cursor.getLong(0)
+                val row=label("${cursor.getString(3)}   |   ${cursor.getString(1)}" +
+                    (cursor.getString(2)?.takeIf { it.isNotBlank() && it!="000" }?.let { "  /  $it" } ?: ""),13f,ink).apply {
+                    background=shape(Color.WHITE,11,Color.rgb(216,228,242))
+                    setPadding(dp(12),dp(11),dp(12),dp(11))
+                    setOnClickListener { load(id) }
+                }
+                results.addView(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
             }
         }
-        code=field("کد کارگاه",true)
-        contract=field("ردیف پیمان",true)
-        name=field("نام کارگاه")
-        employer=field("نام کارفرما")
-        address=field("آدرس کارگاه")
-        rate=field("نرخ حق بیمه (%)",true)
+        if(count==0) results.addView(label("کارگاهی برای نمایش وجود ندارد.",13f,muted))
+        root.addView(results,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(18) })
+
+        root.addView(label("اطلاعات کارگاه",17f,blue).apply {
+            setTypeface(null,Typeface.BOLD); setPadding(0,0,0,dp(10))
+        })
+        val codes=pair("کد کارگاه","ردیف پیمان",true,true)
+        code=codes.first; contract=codes.second
+        val names=pair("نام کارگاه","نام کارفرما")
+        name=names.first; employer=names.second
+        address=field(root,"آدرس کارگاه")
+        rate=field(root,"نرخ حق بیمه (%)",decimal=true,numeric=true)
     }
 
     private fun enable(value:Boolean) {
@@ -101,12 +189,18 @@ class WorkshopActivity : Activity() {
     }
 
     private fun load(id:Long) {
-        store.readableDatabase.rawQuery("SELECT code,contract_row,name,employer,address,insurance_rate FROM workshops WHERE id=?",arrayOf(id.toString())).use { c ->
-            if(c.moveToFirst()) {
+        store.readableDatabase.rawQuery(
+            "SELECT code,contract_row,name,employer,address,insurance_rate FROM workshops WHERE id=?",
+            arrayOf(id.toString())
+        ).use { cursor ->
+            if(cursor.moveToFirst()) {
                 selectedId=id
-                listOf(code,contract,name,employer,address,rate).forEachIndexed { i, edit ->
-                    edit.setText(c.getString(i) ?: "")
+                listOf(code,contract,name,employer,address).forEachIndexed { i, edit ->
+                    val value=cursor.getString(i) ?: ""
+                    edit.setText(if(i==1 && value=="000") "" else value)
                 }
+                val percent=cursor.getDouble(5)
+                rate.setText(if(percent==0.0) "" else percent.toString())
                 enable(false)
             }
         }
@@ -114,27 +208,31 @@ class WorkshopActivity : Activity() {
 
     private fun save() {
         if(!editing) { toast("ابتدا جدید یا ویرایش را انتخاب کنید");return }
-        val fields=listOf(code,contract,name,employer,address,rate).map { it.text.toString().trim() }
-        val percent=fields[5].toDoubleOrNull()
-        if(fields.any { it.isBlank() } || percent==null || !percent.isFinite() || percent<0 || percent>100 ||
-           !fields[0].matches(Regex("[0-9]+")) || !fields[1].matches(Regex("[0-9]{1,3}"))) {
-            toast("همه فیلدها الزامی‌اند؛ ردیف پیمان حداکثر سه رقم و نرخ بین صفر تا صد باشد")
+        val values=listOf(code,contract,name,employer,address,rate).map { it.text.toString().trim() }
+        val percent=if(values[5].isBlank()) 0.0 else values[5].toDoubleOrNull()
+        if(!values[0].matches(Regex("[0-9]+")) ||
+            (values[1].isNotEmpty() && !values[1].matches(Regex("[0-9]{1,3}"))) ||
+            values[2].isBlank() || values[3].isBlank() || values[4].isBlank() ||
+            percent==null || !percent.isFinite() || percent<0 || percent>100) {
+            toast("کد کارگاه، نام‌ها و آدرس را تکمیل کنید؛ مقدار ردیف و نرخ را بررسی کنید")
             return
         }
-        val dup=store.readableDatabase.rawQuery(
+        val row=values[1].ifBlank { "000" }
+        val duplicate=store.readableDatabase.rawQuery(
             "SELECT id FROM workshops WHERE code=? AND contract_row=? AND id<>?",
-            arrayOf(fields[0],fields[1],(selectedId ?: -1L).toString())
+            arrayOf(values[0],row,(selectedId ?: -1L).toString())
         ).use { it.moveToFirst() }
-        if(dup) { toast("این کد کارگاه و ردیف پیمان قبلاً ثبت شده است");return }
-        val values=ContentValues().apply {
-            put("code",fields[0]);put("contract_row",fields[1]);put("name",fields[2])
-            put("employer",fields[3]);put("address",fields[4]);put("insurance_rate",percent)
+        if(duplicate) { toast("این کد کارگاه و ردیف قبلاً ثبت شده است");return }
+        val data=ContentValues().apply {
+            put("code",values[0]);put("contract_row",row)
+            put("name",values[2]);put("employer",values[3])
+            put("address",values[4]);put("insurance_rate",percent)
         }
         try {
             val database=store.writableDatabase
             val id=selectedId
-            if(id==null) database.insertOrThrow("workshops",null,values)
-            else database.update("workshops",values,"id=?",arrayOf(id.toString()))
+            if(id==null) database.insertOrThrow("workshops",null,data)
+            else database.update("workshops",data,"id=?",arrayOf(id.toString()))
             toast("اطلاعات کارگاه ذخیره شد")
             render()
         } catch(e:Exception) { toast("خطا در ذخیره اطلاعات") }
@@ -142,12 +240,12 @@ class WorkshopActivity : Activity() {
 
     private fun deleteSelected() {
         val id=selectedId ?: run { toast("ابتدا کارگاه را انتخاب کنید");return }
-        val count=store.readableDatabase.rawQuery("SELECT COUNT(*) FROM employees WHERE workshop_id=?",arrayOf(id.toString())).use {
-            it.moveToFirst();it.getInt(0)
-        }
-        if(count>0) { toast("این کارگاه کارمند ثبت‌شده دارد؛ حذف مجاز نیست");return }
+        val count=store.readableDatabase.rawQuery(
+            "SELECT COUNT(*) FROM employees WHERE workshop_id=?",arrayOf(id.toString())
+        ).use { it.moveToFirst();it.getInt(0) }
+        if(count>0) { toast("کارگاه دارای کارمند است و حذف نمی‌شود");return }
         AlertDialog.Builder(this).setTitle("حذف کارگاه")
-            .setMessage("کارگاه انتخاب‌شده حذف شود؟ این عملیات برگشت‌پذیر نیست.")
+            .setMessage("کارگاه انتخاب‌شده حذف شود؟")
             .setPositiveButton("حذف") { _,_->
                 store.writableDatabase.delete("workshops","id=?",arrayOf(id.toString()))
                 render()
