@@ -15,6 +15,8 @@ class InsuranceListActivity : Activity() {
     private lateinit var detailArea:LinearLayout
     private var workshops= listOf<Triple<Long,String,String>>()
     private var selectedId:Long?=null
+    private fun twoDigits(value:Int)=value.toString().padStart(2,'0')
+    private fun yearTwoDigits(value:Int)=twoDigits(value%100)
     private fun label(s:String)=TextView(this).apply {text=s;textSize=16f;setPadding(6,12,6,12)}
     private fun button(s:String,action:()->Unit)=Button(this).apply{text=s;isAllCaps=false;setOnClickListener{action()}}
     private fun message(s:String)=Toast.makeText(this,s,Toast.LENGTH_LONG).show()
@@ -49,7 +51,7 @@ class InsuranceListActivity : Activity() {
         store.readableDatabase.rawQuery(sql,null).use{c->
             while(c.moveToNext()){
                 val id=c.getLong(0);val name=c.getString(1);val y=c.getInt(2);val m=c.getInt(3)
-                val display="$name | $y/$m | ${c.getInt(4)} نفر | ${c.getLong(5)} روز | ${c.getLong(6)} ریال"
+                val display="$name | ${yearTwoDigits(y)}/${twoDigits(m)} | ${c.getInt(4)} نفر | ${c.getLong(5)} روز | ${c.getLong(6)} ریال"
                 if(query.isNotEmpty()&&!display.contains(query))continue
                 listArea.addView(button((if(selectedId==id)"✓ " else "")+display){selectedId=id;refresh(query)})
             }
@@ -61,8 +63,9 @@ class InsuranceListActivity : Activity() {
     private fun showDetails(id:Long) {
         store.readableDatabase.rawQuery("SELECT w.code,w.contract_row,w.name,w.employer,w.address,l.year,l.month FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id WHERE l.id=?",arrayOf(id.toString())).use { c ->
             if(!c.moveToFirst())return@use
-            detailArea.addView(label("مشخصات لیست شماره $id").apply{textSize=20f})
-            listOf("کد کارگاه" to c.getString(0),"ردیف پیمان" to c.getString(1),"نام کارگاه" to c.getString(2),"نام کارفرما" to c.getString(3),"آدرس" to c.getString(4),"سال" to c.getInt(5).toString(),"ماه" to c.getInt(6).toString()).forEach { (k,v) ->
+            detailArea.addView(label("مشخصات لیست").apply{textSize=20f})
+            detailArea.addView(label("شماره لیست: ${twoDigits(id.toInt())} (شناسه داخلی؛ شماره‌گذاری مستقل در انتظار تعیین قاعده)"))
+            listOf("کد کارگاه" to c.getString(0),"ردیف پیمان" to c.getString(1),"نام کارگاه" to c.getString(2),"نام کارفرما" to c.getString(3),"آدرس" to c.getString(4),"سال" to yearTwoDigits(c.getInt(5)),"ماه" to twoDigits(c.getInt(6))).forEach { (k,v) ->
                 detailArea.addView(label("$k: $v"))
             }
         }
@@ -79,10 +82,17 @@ class InsuranceListActivity : Activity() {
             }
             val total=Math.addExact(monthly,benefits)
             detailArea.addView(label("خلاصه محاسبات خودکار — فقط خواندنی").apply{textSize=19f})
-            listOf("تعداد نفرات" to people.toString(),"جمع روزهای کارکرد" to days.toString(),"جمع دستمزد روزانه (ریال)" to daily.toString(),"جمع دستمزد ماهانه (ریال)" to monthly.toString(),"مزایای مشمول ثبت‌شده (ریال)" to benefits.toString(),"جمع دستمزد و مزایای ثبت‌شده (ریال)" to total.toString()).forEach { (k,v) ->
+            listOf("تعداد نفرات" to people.toString(),"جمع روزهای کارکرد" to days.toString(),"جمع دستمزد روزانه (ریال)" to daily.toString(),"جمع دستمزد ماهانه (ریال)" to monthly.toString(),"جمع مزایای ماهانه مشمول (ریال)" to benefits.toString(),"جمع دستمزد و مزایای ثبت‌شده (ریال)" to total.toString()).forEach { (k,v) ->
                 detailArea.addView(label("$k: $v"))
             }
-            detailArea.addView(label("پایه سنوات، حق تأهل، مزایای غیرمشمول و سهم‌های حق بیمه: در انتظار تکمیل داده‌ها و قواعد محاسبه؛ مبلغی تخمین زده نمی‌شود."))
+            detailArea.addView(label("جمع کل دستمزد و مزایای ماهانه").apply{textSize=19f})
+            detailArea.addView(label("مشمول: ${String.format("%,d",total)} ریال"))
+            detailArea.addView(label("مشمول و غیرمشمول: محاسبه‌نشده"))
+            detailArea.addView(label("حق بیمه").apply{textSize=19f})
+            listOf("پایه سنواتی","حق تأهل","سهم بیمه‌شده","سهم کارفرما","بیمه بیکاری","حق بیمه مشاغل سخت و زیان‌آور ۴٪").forEach { title ->
+                detailArea.addView(label("$title: محاسبه‌نشده"))
+            }
+            detailArea.addView(label("مبالغ فوق تا زمان ثبت داده‌های تفکیکی و تأیید قواعد دوره، محاسبه نمی‌شوند."))
         } catch(e:ArithmeticException) {
             detailArea.addView(label("خطا: سرریز محاسبات؛ مقادیر ریزکارکرد را بررسی کنید."))
         }
@@ -93,15 +103,16 @@ class InsuranceListActivity : Activity() {
         if(ws.isEmpty()){message("ابتدا کارگاه ثبت کنید");return}
         val panel=LinearLayout(this).apply{orientation=1;setPadding(20,12,20,12)}
         val picker=Spinner(this).apply{adapter=ArrayAdapter(this@InsuranceListActivity,android.R.layout.simple_spinner_dropdown_item,ws.map{"${it.second} — ${it.third}"})}
-        val y=EditText(this).apply{hint="سال شمسی";inputType=2}
+        val y=EditText(this).apply{hint="سال دو رقمی (مثلاً ۰۵)";inputType=2;filters=arrayOf(android.text.InputFilter.LengthFilter(2))}
         val m=Spinner(this).apply{adapter=ArrayAdapter(this@InsuranceListActivity,android.R.layout.simple_spinner_dropdown_item,(1..12).map{"ماه $it"})}
         if(id!=null)store.readableDatabase.rawQuery("SELECT workshop_id,year,month FROM insurance_lists WHERE id=?",arrayOf(id.toString())).use{c->
-            if(c.moveToFirst()){picker.setSelection(ws.indexOfFirst{it.first==c.getLong(0)}.coerceAtLeast(0));y.setText(c.getInt(1).toString());m.setSelection(c.getInt(2)-1)}
+            if(c.moveToFirst()){picker.setSelection(ws.indexOfFirst{it.first==c.getLong(0)}.coerceAtLeast(0));y.setText(yearTwoDigits(c.getInt(1)));m.setSelection(c.getInt(2)-1)}
         }
         panel.addView(label("کارگاه"));panel.addView(picker);panel.addView(y);panel.addView(m)
         AlertDialog.Builder(this).setTitle(if(id==null)"لیست جدید" else "ویرایش لیست").setView(panel).setPositiveButton("ثبت"){_,_->
-            val year=y.text.toString().toIntOrNull()
-            if(year==null||year !in 1300..1600){message("سال معتبر نیست")}else{
+            val shortYear=y.text.toString().toIntOrNull()
+            val year=shortYear?.plus(1400)
+            if(shortYear==null||shortYear !in 0..99){message("سال معتبر نیست")}else{
                 val v=ContentValues().apply{put("workshop_id",ws[picker.selectedItemPosition].first);put("year",year);put("month",m.selectedItemPosition+1)}
                 try {
                     val db=store.writableDatabase
