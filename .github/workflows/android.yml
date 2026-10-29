@@ -47,12 +47,29 @@ jobs:
             echo "SABA_KEYSTORE_PASSWORD=$SABA_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
             echo "SABA_KEY_ALIAS=$SABA_KEY_ALIAS" >> "$GITHUB_ENV"
             echo "SABA_KEY_PASSWORD=$SABA_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "SURA_RELEASE_SIGNING=true" >> "$GITHUB_ENV"
           else
-            echo "::error::Stable signing secrets are required to produce an installable upgrade APK."
+            echo "::warning::Release signing not configured; no release APK will be published."
             echo "Unsigned verification only: using Android debug signing for test APK."
           fi
       - name: Compile and test
         run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
+      - name: Build signed release APK
+        if: env.SURA_RELEASE_SIGNING == 'true'
+        run: gradle --no-daemon :app:assembleRelease
+      - name: Verify release APK signature
+        if: env.SURA_RELEASE_SIGNING == 'true'
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+      - name: Upload signed release APK
+        if: env.SURA_RELEASE_SIGNING == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SURA-release-signed
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
