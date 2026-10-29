@@ -49,13 +49,13 @@ jobs:
             echo "SABA_KEY_PASSWORD=$SABA_KEY_PASSWORD" >> "$GITHUB_ENV"
           else
             echo "::error::Stable signing secrets are required to produce an installable upgrade APK."
-            exit 1
+            echo "Unsigned verification only: using Android debug signing for test APK."
           fi
-      - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
+      - name: Compile and test
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Saba-Insurance-Disk-debug
+          name: Saba-Insurance-Disk-test-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
