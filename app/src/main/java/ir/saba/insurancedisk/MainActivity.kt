@@ -131,8 +131,8 @@ class MainActivity : Activity() {
         tile("کارکنان","مدیریت اطلاعات کارکنان","♟",Color.rgb(224,249,239),Color.rgb(6,130,83)) { startActivity(android.content.Intent(this,EmployeeActivity::class.java)) }
         tile("لیست بیمه","ثبت و مدیریت لیست ماهانه","▤",Color.rgb(255,240,219),Color.rgb(188,106,0)) { startActivity(android.content.Intent(this,InsuranceListActivity::class.java)) }
         tile("ریزکارکرد","ثبت کارکرد و دستمزد کارکنان لیست","▥",Color.rgb(229,244,250),Color.rgb(4,110,145)) { startActivity(android.content.Intent(this,WorkDetailActivity::class.java)) }
-        tile("نمایش","پیش‌نمایش لیست‌های بیمه ثبت‌شده","◉",Color.rgb(231,242,255),Color.rgb(27,91,169)) { startActivity(android.content.Intent(this,InsuranceListActivity::class.java)) }
-        tile("فایل PDF","خروجی PDF لیست بیمه • در دست تکمیل","▧",Color.rgb(255,234,235),Color.rgb(167,48,66)) { Toast.makeText(this,"تهیه فایل PDF هنوز آماده نیست",Toast.LENGTH_LONG).show() }
+        tile("نمایش","پیش‌نمایش لیست‌های بیمه ثبت‌شده","◉",Color.rgb(231,242,255),Color.rgb(27,91,169)) { startActivity(android.content.Intent(this,InsuranceReportActivity::class.java)) }
+        tile("فایل PDF","خروجی PDF لیست بیمه • در دست تکمیل","▧",Color.rgb(255,234,235),Color.rgb(167,48,66)) { startActivity(android.content.Intent(this,InsuranceReportActivity::class.java)) }
         tile("تنظیمات","پیکربندی برنامه • در دست توسعه","⚙",Color.rgb(236,230,255),Color.rgb(98,69,194)) { notice() }
         tile("درباره برنامه","سورا • نسخه آزمایشی ۰.۳","ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
             android.app.AlertDialog.Builder(this).setTitle("سورا").setMessage("نرم‌افزار لیست دیسک بیمه — نسخه آزمایشی. خروجی DBF هنوز آماده نیست.").setPositiveButton("باشه",null).show()
