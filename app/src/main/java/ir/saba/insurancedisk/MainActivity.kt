@@ -15,10 +15,12 @@ class MainActivity : Activity() {
     private lateinit var root: LinearLayout
     private val navy = Color.rgb(14,25,45)
 
-    class Store(activity: Activity): SQLiteOpenHelper(activity,"insurance.db",null,3) {
+    class Store(activity: Activity): SQLiteOpenHelper(activity,"insurance.db",null,4) {
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE workshops (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL, contract_row TEXT NOT NULL DEFAULT '000', employer TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', insurance_rate REAL NOT NULL DEFAULT 0)")
             db.execSQL("CREATE TABLE employees (id INTEGER PRIMARY KEY AUTOINCREMENT, workshop_id INTEGER, name TEXT NOT NULL DEFAULT '', national_id TEXT NOT NULL DEFAULT '', insurance_no TEXT NOT NULL DEFAULT '', personnel_no TEXT NOT NULL DEFAULT '', first_name TEXT NOT NULL DEFAULT '', last_name TEXT NOT NULL DEFAULT '', father_name TEXT NOT NULL DEFAULT '', birth_cert_no TEXT NOT NULL DEFAULT '', birth_date TEXT NOT NULL DEFAULT '', issue_city TEXT NOT NULL DEFAULT '', gender TEXT NOT NULL DEFAULT '', nationality TEXT NOT NULL DEFAULT '', job_title TEXT NOT NULL DEFAULT '', job_code TEXT NOT NULL DEFAULT '')")
+            db.execSQL("CREATE TABLE insurance_lists (id INTEGER PRIMARY KEY AUTOINCREMENT, workshop_id INTEGER NOT NULL, year INTEGER NOT NULL, month INTEGER NOT NULL, UNIQUE(workshop_id,year,month))")
+            db.execSQL("CREATE TABLE insurance_list_items (id INTEGER PRIMARY KEY AUTOINCREMENT, list_id INTEGER NOT NULL, employee_id INTEGER NOT NULL, days INTEGER NOT NULL, daily_wage INTEGER NOT NULL, benefits INTEGER NOT NULL DEFAULT 0, UNIQUE(list_id,employee_id))")
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
             if(oldVersion<2) {
@@ -31,6 +33,10 @@ class MainActivity : Activity() {
                 val additions=listOf("personnel_no","first_name","last_name","father_name","birth_cert_no","birth_date","issue_city","gender","nationality","job_title","job_code")
                 additions.forEach { db.execSQL("ALTER TABLE employees ADD COLUMN $it TEXT NOT NULL DEFAULT ''") }
                 db.execSQL("UPDATE employees SET personnel_no=printf('%06d',id), first_name=name WHERE personnel_no=''")
+            }
+            if(oldVersion<4) {
+                db.execSQL("CREATE TABLE insurance_lists (id INTEGER PRIMARY KEY AUTOINCREMENT, workshop_id INTEGER NOT NULL, year INTEGER NOT NULL, month INTEGER NOT NULL, UNIQUE(workshop_id,year,month))")
+                db.execSQL("CREATE TABLE insurance_list_items (id INTEGER PRIMARY KEY AUTOINCREMENT, list_id INTEGER NOT NULL, employee_id INTEGER NOT NULL, days INTEGER NOT NULL, daily_wage INTEGER NOT NULL, benefits INTEGER NOT NULL DEFAULT 0, UNIQUE(list_id,employee_id))")
             }
         }
     }
@@ -119,7 +125,7 @@ class MainActivity : Activity() {
             startActivity(android.content.Intent(this,WorkshopActivity::class.java))
         }
         tile("کارکنان","مدیریت اطلاعات کارکنان","♟",Color.rgb(224,249,239),Color.rgb(6,130,83)) { startActivity(android.content.Intent(this,EmployeeActivity::class.java)) }
-        tile("لیست بیمه","ثبت و تهیه لیست ماهانه • در دست توسعه","▤",Color.rgb(255,240,219),Color.rgb(188,106,0)) { notice() }
+        tile("لیست بیمه","ثبت و مدیریت لیست ماهانه","▤",Color.rgb(255,240,219),Color.rgb(188,106,0)) { startActivity(android.content.Intent(this,InsuranceListActivity::class.java)) }
         tile("تنظیمات","پیکربندی برنامه • در دست توسعه","⚙",Color.rgb(236,230,255),Color.rgb(98,69,194)) { notice() }
         tile("درباره برنامه","صبا • نسخه آزمایشی ۰.۳","ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
             android.app.AlertDialog.Builder(this).setTitle("صبا").setMessage("نرم‌افزار لیست دیسک بیمه — نسخه آزمایشی. خروجی DBF هنوز آماده نیست.").setPositiveButton("باشه",null).show()
