@@ -9,7 +9,7 @@ import android.provider.MediaStore
 import android.widget.*
 import android.view.View
 
-class InsuranceReportActivity : Activity() {
+open class InsuranceReportActivity : Activity() {
     private val db by lazy { MainActivity.Store(this) }
     private val lists = mutableListOf<Pair<Long,String>>()
     private lateinit var selector: Spinner
