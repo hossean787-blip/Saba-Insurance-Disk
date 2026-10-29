@@ -47,11 +47,11 @@ class InsuranceListActivity : Activity() {
     private fun refresh(query:String="") {
         listArea.removeAllViews()
         detailArea.removeAllViews()
-        val sql="SELECT l.id,w.name,l.year,l.month,COUNT(i.id),COALESCE(SUM(i.days),0),COALESCE(SUM(i.days*i.daily_wage+i.benefits),0) FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id LEFT JOIN insurance_list_items i ON i.list_id=l.id GROUP BY l.id,w.name,l.year,l.month ORDER BY l.year DESC,l.month DESC,l.id DESC"
+        val sql="SELECT l.id,w.name,l.year,l.month,l.list_number,COUNT(i.id),COALESCE(SUM(i.days),0),COALESCE(SUM(i.days*i.daily_wage+i.benefits),0) FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id LEFT JOIN insurance_list_items i ON i.list_id=l.id GROUP BY l.id,w.name,l.year,l.month ORDER BY l.year DESC,l.month DESC,l.id DESC"
         store.readableDatabase.rawQuery(sql,null).use{c->
             while(c.moveToNext()){
                 val id=c.getLong(0);val name=c.getString(1);val y=c.getInt(2);val m=c.getInt(3)
-                val display="$name | ${yearTwoDigits(y)}/${twoDigits(m)} | ${c.getInt(4)} نفر | ${c.getLong(5)} روز | ${c.getLong(6)} ریال"
+                val display="شماره ${twoDigits(c.getInt(4))} | $name | ${yearTwoDigits(y)}/${twoDigits(m)} | ${c.getInt(5)} نفر | ${c.getLong(6)} روز | ${c.getLong(7)} ریال"
                 if(query.isNotEmpty()&&!display.contains(query))continue
                 listArea.addView(button((if(selectedId==id)"✓ " else "")+display){selectedId=id;refresh(query)})
             }
@@ -61,10 +61,10 @@ class InsuranceListActivity : Activity() {
         }
     }
     private fun showDetails(id:Long) {
-        store.readableDatabase.rawQuery("SELECT w.code,w.contract_row,w.name,w.employer,w.address,l.year,l.month FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id WHERE l.id=?",arrayOf(id.toString())).use { c ->
+        store.readableDatabase.rawQuery("SELECT w.code,w.contract_row,w.name,w.employer,w.address,l.year,l.month,l.list_number FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id WHERE l.id=?",arrayOf(id.toString())).use { c ->
             if(!c.moveToFirst())return@use
             detailArea.addView(label("مشخصات لیست").apply{textSize=20f})
-            detailArea.addView(label("شماره لیست: ${twoDigits(id.toInt())} (شناسه داخلی؛ شماره‌گذاری مستقل در انتظار تعیین قاعده)"))
+            detailArea.addView(label("شماره لیست: ${twoDigits(c.getInt(7))}"))
             listOf("کد کارگاه" to c.getString(0),"ردیف پیمان" to c.getString(1),"نام کارگاه" to c.getString(2),"نام کارفرما" to c.getString(3),"آدرس" to c.getString(4),"سال" to yearTwoDigits(c.getInt(5)),"ماه" to twoDigits(c.getInt(6))).forEach { (k,v) ->
                 detailArea.addView(label("$k: $v"))
             }
@@ -116,7 +116,13 @@ class InsuranceListActivity : Activity() {
                 val v=ContentValues().apply{put("workshop_id",ws[picker.selectedItemPosition].first);put("year",year);put("month",m.selectedItemPosition+1)}
                 try {
                     val db=store.writableDatabase
-                    if(id==null){val newId=db.insertOrThrow("insurance_lists",null,v);selectedId=newId}
+                    if(id==null){
+                        val wid=ws[picker.selectedItemPosition].first
+                        val next=db.rawQuery("SELECT COALESCE(MAX(list_number),0)+1 FROM insurance_lists WHERE workshop_id=? AND year=?",arrayOf(wid.toString(),year.toString())).use{c->c.moveToFirst();c.getInt(0)}
+                        if(next>99){message("ظرفیت شماره دو رقمی تکمیل شده است");return@setPositiveButton}
+                        v.put("list_number",next)
+                        selectedId=db.insertOrThrow("insurance_lists",null,v)
+                    }
                     else {db.update("insurance_lists",v,"id=?",arrayOf(id.toString()));selectedId=id}
                     refresh()
                 }catch(e:Exception){message("این دوره برای کارگاه تکراری است یا ثبت ناموفق بود")}
