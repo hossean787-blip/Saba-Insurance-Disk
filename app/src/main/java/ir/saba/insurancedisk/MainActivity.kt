@@ -96,7 +96,7 @@ class MainActivity : Activity() {
             layoutParams=LinearLayout.LayoutParams(72,72)
         })
         val heading=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(18,0,0,0) }
-        heading.addView(TextView(this).apply { text="صبا";textSize=33f;setTextColor(Color.WHITE);setTypeface(null,1) })
+        heading.addView(TextView(this).apply { text="سورا";textSize=33f;setTextColor(Color.WHITE);setTypeface(null,1) })
         heading.addView(TextView(this).apply { text="لیست دیسک تأمین اجتماعی";textSize=14f;setTextColor(Color.rgb(217,234,255)) })
         header.addView(heading)
         shell.addView(header)
@@ -132,8 +132,8 @@ class MainActivity : Activity() {
         tile("لیست بیمه","ثبت و مدیریت لیست ماهانه","▤",Color.rgb(255,240,219),Color.rgb(188,106,0)) { startActivity(android.content.Intent(this,InsuranceListActivity::class.java)) }
         tile("ریزکارکرد","ثبت کارکرد و دستمزد کارکنان لیست","▥",Color.rgb(229,244,250),Color.rgb(4,110,145)) { startActivity(android.content.Intent(this,WorkDetailActivity::class.java)) }
         tile("تنظیمات","پیکربندی برنامه • در دست توسعه","⚙",Color.rgb(236,230,255),Color.rgb(98,69,194)) { notice() }
-        tile("درباره برنامه","صبا • نسخه آزمایشی ۰.۳","ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
-            android.app.AlertDialog.Builder(this).setTitle("صبا").setMessage("نرم‌افزار لیست دیسک بیمه — نسخه آزمایشی. خروجی DBF هنوز آماده نیست.").setPositiveButton("باشه",null).show()
+        tile("درباره برنامه","سورا • نسخه آزمایشی ۰.۳","ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
+            android.app.AlertDialog.Builder(this).setTitle("سورا").setMessage("نرم‌افزار لیست دیسک بیمه — نسخه آزمایشی. خروجی DBF هنوز آماده نیست.").setPositiveButton("باشه",null).show()
         }
         shell.setOnApplyWindowInsetsListener { view, insets ->
             val top=if(android.os.Build.VERSION.SDK_INT>=30) insets.getInsets(android.view.WindowInsets.Type.statusBars()).top else insets.systemWindowInsetTop
