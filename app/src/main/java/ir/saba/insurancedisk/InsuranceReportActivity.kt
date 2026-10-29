@@ -19,7 +19,7 @@ class InsuranceReportActivity : Activity() {
         super.onCreate(savedInstanceState)
         val root=LinearLayout(this).apply { orientation=1; layoutDirection=View.LAYOUT_DIRECTION_RTL; setPadding(24,24,24,24) }
         setContentView(ScrollView(this).apply { addView(root) })
-        root.addView(TextView(this).apply { text="نمایش و PDF لیست بیمه"; textSize=24f })
+        root.addView(TextView(this).apply { text=if(intent.getBooleanExtra("pdf",false)) "فایل PDF لیست بیمه" else "نمایش لیست بیمه"; textSize=24f })
         db.readableDatabase.rawQuery("SELECT l.id,w.name,l.year,l.month FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id ORDER BY l.year DESC,l.month DESC",null).use { c ->
             while(c.moveToNext()) lists.add(c.getLong(0) to "${c.getString(1)} - ${c.getInt(2)}/${c.getInt(3)}")
         }
@@ -28,7 +28,7 @@ class InsuranceReportActivity : Activity() {
         root.addView(selector)
         output=TextView(this).apply { textSize=17f; textDirection=View.TEXT_DIRECTION_RTL; setPadding(8,20,8,20) }
         root.addView(Button(this).apply { text="نمایش"; setOnClickListener { output.text=report() } })
-        root.addView(Button(this).apply { text="ذخیره PDF"; setOnClickListener { save() } })
+        if(intent.getBooleanExtra("pdf",false)) root.addView(Button(this).apply { text="ذخیره PDF"; setOnClickListener { save() } })
         root.addView(output)
         output.text=report()
     }
