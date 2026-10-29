@@ -92,7 +92,7 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.rgb(6,53,117))
         }
         header.addView(ImageView(this).apply {
-            setImageResource(R.drawable.saba_launcher)
+            setImageResource(R.drawable.sura_launcher)
             layoutParams=LinearLayout.LayoutParams(72,72)
         })
         val heading=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(18,0,0,0) }
