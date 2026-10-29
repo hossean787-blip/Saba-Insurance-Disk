@@ -134,7 +134,7 @@ class MainActivity : Activity() {
         tile("نمایش","پیش‌نمایش لیست‌های بیمه ثبت‌شده","◉",Color.rgb(231,242,255),Color.rgb(27,91,169)) { startActivity(android.content.Intent(this,InsurancePreviewActivity::class.java)) }
         tile("فایل PDF","خروجی PDF لیست بیمه • در دست تکمیل","▧",Color.rgb(255,234,235),Color.rgb(167,48,66)) { startActivity(android.content.Intent(this,InsuranceReportActivity::class.java).putExtra("pdf",true)) }
         tile("تنظیمات","پیکربندی برنامه • در دست توسعه","⚙",Color.rgb(236,230,255),Color.rgb(98,69,194)) { notice() }
-        tile("درباره برنامه","سورا • نسخه آزمایشی ۰.۳","ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
+        tile("درباره برنامه","سورا • نسخه آزمایشی " + packageManager.getPackageInfo(packageName,0).versionName,"ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
             android.app.AlertDialog.Builder(this).setTitle("سورا").setMessage("نرم‌افزار لیست دیسک بیمه — نسخه آزمایشی. خروجی DBF هنوز آماده نیست.").setPositiveButton("باشه",null).show()
         }
         shell.setOnApplyWindowInsetsListener { view, insets ->
