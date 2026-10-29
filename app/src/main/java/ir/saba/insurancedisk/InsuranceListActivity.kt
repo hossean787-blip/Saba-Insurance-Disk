@@ -12,6 +12,7 @@ class InsuranceListActivity : Activity() {
     private val store by lazy { MainActivity.Store(this) }
     private lateinit var root:LinearLayout
     private lateinit var listArea:LinearLayout
+    private lateinit var detailArea:LinearLayout
     private var workshops= listOf<Triple<Long,String,String>>()
     private var selectedId:Long?=null
     private fun label(s:String)=TextView(this).apply {text=s;textSize=16f;setPadding(6,12,6,12)}
@@ -36,11 +37,14 @@ class InsuranceListActivity : Activity() {
         val search=EditText(this).apply{hint="جست‌وجوی کارگاه، سال یا ماه"}
         root.addView(search)
         root.addView(button("جست‌وجو"){refresh(search.text.toString().trim())})
+        detailArea=LinearLayout(this).apply{orientation=1};root.addView(detailArea)
+        root.addView(label("فهرست لیست‌های ماهانه").apply{textSize=19f})
         listArea=LinearLayout(this).apply{orientation=1};root.addView(listArea)
         refresh()
     }
     private fun refresh(query:String="") {
         listArea.removeAllViews()
+        detailArea.removeAllViews()
         val sql="SELECT l.id,w.name,l.year,l.month,COUNT(i.id),COALESCE(SUM(i.days),0),COALESCE(SUM(i.days*i.daily_wage+i.benefits),0) FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id LEFT JOIN insurance_list_items i ON i.list_id=l.id GROUP BY l.id,w.name,l.year,l.month ORDER BY l.year DESC,l.month DESC,l.id DESC"
         store.readableDatabase.rawQuery(sql,null).use{c->
             while(c.moveToNext()){
@@ -51,8 +55,36 @@ class InsuranceListActivity : Activity() {
             }
         }
         selectedId?.let { id->
-            listArea.addView(label("خلاصه خودکار لیست شماره $id (فقط خواندنی)"))
-            listArea.addView(button("مشاهده جزئیات محاسبات"){showSummary(id)})
+            showDetails(id)
+        }
+    }
+    private fun showDetails(id:Long) {
+        store.readableDatabase.rawQuery("SELECT w.code,w.contract_row,w.name,w.employer,w.address,l.year,l.month FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id WHERE l.id=?",arrayOf(id.toString())).use { c ->
+            if(!c.moveToFirst())return@use
+            detailArea.addView(label("مشخصات لیست شماره $id").apply{textSize=20f})
+            listOf("کد کارگاه" to c.getString(0),"ردیف پیمان" to c.getString(1),"نام کارگاه" to c.getString(2),"نام کارفرما" to c.getString(3),"آدرس" to c.getString(4),"سال" to c.getInt(5).toString(),"ماه" to c.getInt(6).toString()).forEach { (k,v) ->
+                detailArea.addView(label("$k: $v"))
+            }
+        }
+        var people=0L;var days=0L;var daily=0L;var monthly=0L;var benefits=0L
+        try {
+            store.readableDatabase.rawQuery("SELECT days,daily_wage,benefits FROM insurance_list_items WHERE list_id=?",arrayOf(id.toString())).use { c ->
+                while(c.moveToNext()){
+                    people=Math.addExact(people,1L)
+                    days=Math.addExact(days,c.getLong(0))
+                    daily=Math.addExact(daily,c.getLong(1))
+                    monthly=Math.addExact(monthly,Math.multiplyExact(c.getLong(0),c.getLong(1)))
+                    benefits=Math.addExact(benefits,c.getLong(2))
+                }
+            }
+            val total=Math.addExact(monthly,benefits)
+            detailArea.addView(label("خلاصه محاسبات خودکار — فقط خواندنی").apply{textSize=19f})
+            listOf("تعداد نفرات" to people.toString(),"جمع روزهای کارکرد" to days.toString(),"جمع دستمزد روزانه (ریال)" to daily.toString(),"جمع دستمزد ماهانه (ریال)" to monthly.toString(),"مزایای مشمول ثبت‌شده (ریال)" to benefits.toString(),"جمع دستمزد و مزایای ثبت‌شده (ریال)" to total.toString()).forEach { (k,v) ->
+                detailArea.addView(label("$k: $v"))
+            }
+            detailArea.addView(label("پایه سنوات، حق تأهل، مزایای غیرمشمول و سهم‌های حق بیمه: در انتظار تکمیل داده‌ها و قواعد محاسبه؛ مبلغی تخمین زده نمی‌شود."))
+        } catch(e:ArithmeticException) {
+            detailArea.addView(label("خطا: سرریز محاسبات؛ مقادیر ریزکارکرد را بررسی کنید."))
         }
     }
     private fun editor(id:Long?) {
