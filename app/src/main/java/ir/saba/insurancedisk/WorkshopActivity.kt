@@ -264,6 +264,10 @@ class WorkshopActivity : Activity() {
             "SELECT COUNT(*) FROM employees WHERE workshop_id=?",arrayOf(id.toString())
         ).use { it.moveToFirst();it.getInt(0) }
         if(count>0) { toast("کارگاه دارای کارمند است و حذف نمی‌شود");return }
+        val lists=store.readableDatabase.rawQuery(
+            "SELECT COUNT(*) FROM insurance_lists WHERE workshop_id=?",arrayOf(id.toString())
+        ).use { it.moveToFirst();it.getInt(0) }
+        if(lists>0){toast("کارگاه دارای لیست بیمه است و برای حفظ سوابق حذف نمی‌شود");return}
         AlertDialog.Builder(this).setTitle("حذف کارگاه")
             .setMessage("کارگاه انتخاب‌شده حذف شود؟")
             .setPositiveButton("حذف") { _,_->

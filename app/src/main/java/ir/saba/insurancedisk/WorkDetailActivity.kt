@@ -12,6 +12,7 @@ class WorkDetailActivity:Activity() {
     private lateinit var root:LinearLayout
     private lateinit var listPicker:Spinner
     private lateinit var employeePicker:Spinner
+    private lateinit var selectionArea:LinearLayout
     private lateinit var rows:LinearLayout
     private var lists=listOf<Pair<Long,String>>()
     private var employees=listOf<Pair<Long,String>>()
@@ -29,26 +30,50 @@ class WorkDetailActivity:Activity() {
         if(lists.isEmpty()){root.addView(text("ابتدا در بخش لیست بیمه، یک لیست ماهانه ایجاد کنید."));root.addView(button("خروج"){finish()});return}
         listPicker=Spinner(this).apply{adapter=ArrayAdapter(this@WorkDetailActivity,android.R.layout.simple_spinner_dropdown_item,lists.map{it.second})}
         root.addView(text("انتخاب لیست بیمه"));root.addView(listPicker)
-        val e=mutableListOf<Pair<Long,String>>()
-        store.readableDatabase.rawQuery("SELECT id,first_name,last_name,insurance_no FROM employees ORDER BY last_name,first_name",null).use{c->while(c.moveToNext())e.add(c.getLong(0) to "${c.getString(1)} ${c.getString(2)} — ${c.getString(3)}")}
-        employees=e
-        if(e.isNotEmpty()){
-            employeePicker=Spinner(this).apply{adapter=ArrayAdapter(this@WorkDetailActivity,android.R.layout.simple_spinner_dropdown_item,employees.map{it.second})}
-            root.addView(text("انتخاب کارمند"));root.addView(employeePicker)
-            root.addView(button("افزودن / ویرایش کارکرد"){edit()})
-        }else root.addView(text("ابتدا در بخش کارکنان، کارمند ثبت کنید."))
+        selectionArea=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
+        root.addView(selectionArea)
         rows=LinearLayout(this).apply{orientation=1};root.addView(rows)
         listPicker.onItemSelectedListener=object:android.widget.AdapterView.OnItemSelectedListener{
             override fun onNothingSelected(parent:android.widget.AdapterView<*>?){}
-            override fun onItemSelected(parent:android.widget.AdapterView<*>?,view:View?,position:Int,id:Long){refresh()}
+            override fun onItemSelected(parent:android.widget.AdapterView<*>?,view:View?,position:Int,id:Long){loadEmployees();refresh()}
         }
         root.addView(button("خروج"){finish()})
+        loadEmployees()
         refresh()
+    }
+    private fun loadEmployees(){
+        selectionArea.removeAllViews()
+        val matched=mutableListOf<Pair<Long,String>>()
+        store.readableDatabase.rawQuery(
+            """SELECT e.id,e.first_name,e.last_name,e.insurance_no FROM employees e
+               JOIN insurance_lists l ON l.workshop_id=e.workshop_id
+               WHERE l.id=? ORDER BY e.last_name,e.first_name""",
+            arrayOf(selectedList().toString())
+        ).use { c->while(c.moveToNext()){
+            matched.add(c.getLong(0) to "${c.getString(1)} ${c.getString(2)} — ${c.getString(3)}")
+        } }
+        employees=matched
+        if(matched.isEmpty()){
+            selectionArea.addView(text("کارمند مرتبط با این کارگاه ثبت نشده است. در مدیریت کارکنان، کارگاه فرد را مشخص کنید."))
+        }else{
+            employeePicker=Spinner(this).apply {
+                adapter=ArrayAdapter(this@WorkDetailActivity,android.R.layout.simple_spinner_dropdown_item,matched.map{it.second})
+            }
+            selectionArea.addView(text("انتخاب کارمند همین کارگاه"))
+            selectionArea.addView(employeePicker)
+            selectionArea.addView(button("افزودن / ویرایش کارکرد"){edit()})
+        }
     }
     private fun selectedList()=lists[listPicker.selectedItemPosition.coerceAtLeast(0)].first
     private fun edit(){
         val listId=selectedList()
-        val empId=employees[employeePicker.selectedItemPosition].first
+        val empId=employees.getOrNull(employeePicker.selectedItemPosition)?.first
+        if(empId==null){alert("ابتدا کارمند همین کارگاه را انتخاب کنید");return}
+        val allowed=store.readableDatabase.rawQuery(
+            """SELECT 1 FROM employees e JOIN insurance_lists l ON l.workshop_id=e.workshop_id
+               WHERE e.id=? AND l.id=?""",arrayOf(empId.toString(),listId.toString())
+        ).use { it.moveToFirst() }
+        if(!allowed){alert("کارمند متعلق به این کارگاه نیست");loadEmployees();return}
         val box=LinearLayout(this).apply{orientation=1;setPadding(20,12,20,12)}
         fun field(h:String)=EditText(this).apply{hint=h;inputType=2;box.addView(this)}
         val days=field("روزهای کارکرد")

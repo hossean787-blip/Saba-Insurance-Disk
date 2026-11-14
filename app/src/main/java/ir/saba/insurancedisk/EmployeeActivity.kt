@@ -18,6 +18,8 @@ class EmployeeActivity : Activity() {
     private val fields = linkedMapOf<String, EditText>()
     private lateinit var gender: Spinner
     private lateinit var nationality: Spinner
+    private lateinit var workshopPicker: Spinner
+    private var workshops=listOf<Pair<Long,String>>()
     private var selectedId: Long? = null
     private var editing = false
     private val blue = Color.rgb(8,58,125)
@@ -92,6 +94,11 @@ class EmployeeActivity : Activity() {
     }
     private fun render(search:String="") {
         fields.clear();selectedId=null;editing=false
+        workshops=mutableListOf<Pair<Long,String>>().also { found ->
+            store.readableDatabase.rawQuery("SELECT id,name,code FROM workshops ORDER BY name,code",null).use { c ->
+                while(c.moveToNext()) found.add(c.getLong(0) to "${c.getString(1)} — ${c.getString(2)}")
+            }
+        }
         root=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL
             setPadding(dp(15),dp(16),dp(15),dp(22));setBackgroundColor(Color.rgb(242,247,253))
@@ -109,7 +116,7 @@ class EmployeeActivity : Activity() {
             setPadding(dp(18),dp(18),dp(18),dp(19))
         }
         header.addView(label("♟  مشخصات کارکنان",23f,Color.WHITE).apply {setTypeface(null,Typeface.BOLD)})
-        header.addView(label("صبا  |  مدیریت مستقل اطلاعات پرسنل",12f,Color.rgb(222,235,255)))
+        header.addView(label("صبا  |  مدیریت پرسنل به تفکیک کارگاه",12f,Color.rgb(222,235,255)))
         root.addView(header,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(14)})
         toolbar(listOf(Triple("جدید","＋",{clear(true)}),Triple("ویرایش","✎",{if(selectedId!=null)enable(true) else toast("ابتدا کارمند را انتخاب کنید")}),Triple("حذف","×",{deleteSelected()})))
         toolbar(listOf(Triple("ثبت","✓",{save()}),Triple("لغو","↶",{clear(false)}),Triple("خروج","⌂",{finish()})))
@@ -118,7 +125,7 @@ class EmployeeActivity : Activity() {
             background=shape(Color.WHITE,14,Color.rgb(207,222,241));setPadding(dp(12),dp(5),dp(12),dp(5))
         }
         val searchInput=EditText(this).apply {
-            hint="جست‌وجوی نام، کد ملی، شماره بیمه یا شغل"
+            hint="جست‌وجوی نام، کد ملی، بیمه، شغل یا کارگاه"
             setSingleLine(true);textSize=13f;setTextColor(ink);setText(search);setSelection(search.length)
         }
         searchBox.addView(searchInput,LinearLayout.LayoutParams(0,dp(49),1f))
@@ -128,31 +135,45 @@ class EmployeeActivity : Activity() {
         val table=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL;background=shape(Color.WHITE,13,Color.rgb(209,224,241));setPadding(dp(4),dp(4),dp(4),dp(4))
         }
-        fun tableRow(cells:List<String>,header:Boolean,id:Long?=null,index:Int=0) {
-            val row=LinearLayout(this).apply {
-                orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;gravity=Gravity.CENTER_VERTICAL
-                background=shape(if(header)blue else if(index%2==0)Color.WHITE else Color.rgb(235,244,255),6)
-                if(id!=null)setOnClickListener{load(id)}
-            }
-            cells.forEachIndexed { i,v ->
-                row.addView(label(v,if(header)11f else 11.5f,if(header)Color.WHITE else ink).apply {
-                    gravity=Gravity.CENTER;setPadding(dp(2),dp(12),dp(2),dp(12))
-                    if(header)setTypeface(null,Typeface.BOLD)
-                },LinearLayout.LayoutParams(0,-2,if(i==2)1.4f else 1f))
-            }
-            table.addView(row)
-        }
-        tableRow(listOf("شماره بیمه","پرسنلی","نام خانوادگی","نام","شغل","کد ملی"),true)
-        val arg="%$search%";var count=0
+        val arg="%$search%"
+        var count=0
+        var unassigned=0
         store.readableDatabase.rawQuery(
-            "SELECT id,insurance_no,personnel_no,last_name,first_name,job_title,national_id FROM employees WHERE insurance_no LIKE ? OR personnel_no LIKE ? OR last_name LIKE ? OR first_name LIKE ? OR job_title LIKE ? OR national_id LIKE ? ORDER BY id DESC",
-            arrayOf(arg,arg,arg,arg,arg,arg)
-        ).use { c->while(c.moveToNext()) {
-            tableRow((1..6).map{c.getString(it) ?: ""},false,c.getLong(0),count);count++
-        } }
-        if(count==0)table.addView(label("کارمندی برای نمایش وجود ندارد.",13f,muted).apply {gravity=Gravity.CENTER;setPadding(dp(8),dp(16),dp(8),dp(16))})
+            """SELECT e.id,e.insurance_no,e.personnel_no,e.last_name,e.first_name,e.job_title,e.national_id,
+                      COALESCE(w.name,'بدون کارگاه') FROM employees e
+               LEFT JOIN workshops w ON w.id=e.workshop_id
+               WHERE e.insurance_no LIKE ? OR e.personnel_no LIKE ? OR e.last_name LIKE ?
+                  OR e.first_name LIKE ? OR e.job_title LIKE ? OR e.national_id LIKE ?
+                  OR w.name LIKE ? ORDER BY e.id DESC""",
+            arrayOf(arg,arg,arg,arg,arg,arg,arg)
+        ).use { c ->
+            while(c.moveToNext()) {
+                val id=c.getLong(0)
+                val assigned=c.getString(7)
+                if(assigned=="بدون کارگاه")unassigned++
+                val card=LinearLayout(this).apply {
+                    orientation=LinearLayout.VERTICAL
+                    background=shape(if(count%2==0)Color.WHITE else Color.rgb(235,244,255),10,Color.rgb(214,228,245))
+                    setPadding(dp(12),dp(9),dp(12),dp(9))
+                    setOnClickListener { load(id) }
+                }
+                card.addView(label("${c.getString(4)} ${c.getString(3)}  •  ${c.getString(2)}",15f,blue).apply {
+                    setTypeface(null,Typeface.BOLD)
+                })
+                card.addView(label("کارگاه: $assigned  |  بیمه: ${c.getString(1)}",13f,if(assigned=="بدون کارگاه")Color.rgb(166,72,23) else muted))
+                card.addView(label("کد ملی: ${c.getString(6)}  |  شغل: ${c.getString(5)}",12f,muted))
+                table.addView(card,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(5)})
+                count++
+            }
+        }
+        if(count==0)table.addView(label("کارمندی برای نمایش وجود ندارد.",13f,muted).apply {
+            gravity=Gravity.CENTER;setPadding(dp(8),dp(16),dp(8),dp(16))
+        })
+        if(unassigned>0)table.addView(label("$unassigned نفر بدون کارگاه هستند؛ برای اصلاح، رکورد را انتخاب و ویرایش کنید.",13f,Color.rgb(166,72,23)))
         root.addView(table,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(18)})
         root.addView(label("اطلاعات پرسنل",17f,blue).apply {setTypeface(null,Typeface.BOLD);setPadding(0,0,0,dp(10))})
+        workshopPicker=spinnerBox("کارگاه محل اشتغال *",listOf("انتخاب کارگاه") + workshops.map { it.second })
+        if(workshops.isEmpty()) root.addView(label("برای ثبت کارمند ابتدا کارگاه ایجاد کنید.",13f,Color.rgb(166,72,23)))
         pair("personnel_no","شماره پرسنلی","insurance_no","شماره بیمه",false,true,true)
         pair("first_name","نام","last_name","نام خانوادگی")
         pair("father_name","نام پدر","national_id","کد ملی",false,true)
@@ -165,71 +186,102 @@ class EmployeeActivity : Activity() {
     private fun enable(value:Boolean) {
         editing=value
         fields.forEach { (key,e)->e.isEnabled=value && key!="personnel_no" }
-        gender.isEnabled=value;nationality.isEnabled=value
+        gender.isEnabled=value;nationality.isEnabled=value;workshopPicker.isEnabled=value
     }
     private fun clear(start:Boolean) {
         selectedId=null
         fields.forEach { (key,e)->e.setText(if(key=="personnel_no")"خودکار" else "") }
-        gender.setSelection(0);nationality.setSelection(0);enable(start)
+        gender.setSelection(0);nationality.setSelection(0);workshopPicker.setSelection(0);enable(start)
     }
     private fun load(id:Long) {
         val keys=fields.keys.toList()
         val columns=keys.joinToString(",")
-        store.readableDatabase.rawQuery("SELECT $columns,gender,nationality FROM employees WHERE id=?",arrayOf(id.toString())).use { c->
+        store.readableDatabase.rawQuery("SELECT $columns,gender,nationality,workshop_id FROM employees WHERE id=?",arrayOf(id.toString())).use { c->
             if(c.moveToFirst()) {
                 selectedId=id
                 keys.forEachIndexed { i,key->fields[key]?.setText(c.getString(i) ?: "") }
                 gender.setSelection(listOf("انتخاب کنید","مرد","زن").indexOf(c.getString(keys.size)).coerceAtLeast(0))
                 nationality.setSelection(listOf("انتخاب کنید","ایرانی","غیرایرانی").indexOf(c.getString(keys.size+1)).coerceAtLeast(0))
+                val assigned=workshops.indexOfFirst { it.first==c.getLong(keys.size+2) }
+                workshopPicker.setSelection(assigned+1)
+                if(assigned<0)toast("این کارمند کارگاه ندارد؛ با ویرایش، کارگاه را انتخاب کنید.")
                 enable(false)
             }
         }
     }
-    private fun validNationalId(s:String):Boolean {
-        if(!s.matches(Regex("[0-9]{10}")) || s.toSet().size==1)return false
-        val sum=(0..8).sumOf { (s[it]-'0')*(10-it) }
-        val remainder=sum%11
-        val check=s[9]-'0'
-        return check==if(remainder<2)remainder else 11-remainder
-    }
     private fun save() {
         if(!editing){toast("ابتدا جدید یا ویرایش را انتخاب کنید");return}
-        val values=fields.mapValues{it.value.text.toString().trim()}.toMutableMap()
-        val raw=values["insurance_no"] ?: ""
-        if(!raw.matches(Regex("[0-9]{1,10}"))){toast("شماره بیمه باید حداکثر ۱۰ رقم و فقط عدد باشد");return}
-        values["insurance_no"]=raw.padStart(10,'0')
-        if(fields.keys.filter{it!="personnel_no"}.any{values[it].isNullOrBlank()} || gender.selectedItemPosition==0 || nationality.selectedItemPosition==0) {
+        val workshopId=workshops.getOrNull(workshopPicker.selectedItemPosition-1)?.first
+        if(workshopId==null){toast("انتخاب کارگاه الزامی است");return}
+        val values=fields.mapValues { it.value.text.toString().trim() }.toMutableMap()
+        val insuranceNo=EmployeeRules.normalizeInsuranceNo(values["insurance_no"] ?: "")
+        if(insuranceNo==null){toast("شماره بیمه باید ۱ تا ۱۰ رقم و غیرصفر باشد");return}
+        values["insurance_no"]=insuranceNo
+        listOf("national_id","birth_date","job_code","birth_cert_no").forEach { key ->
+            values[key]=EmployeeRules.normalizeDigits(values[key] ?: "")
+        }
+        if(fields.keys.filter { it!="personnel_no" }.any { values[it].isNullOrBlank() }
+            || gender.selectedItemPosition==0 || nationality.selectedItemPosition==0) {
             toast("تمام اطلاعات پرسنل الزامی است");return
         }
-        if(!validNationalId(values["national_id"] ?: "")){toast("کد ملی معتبر نیست");return}
-        val birth=values["birth_date"] ?: ""
-        if(!birth.matches(Regex("[0-9۰-۹]{4}/[0-9۰-۹]{2}/[0-9۰-۹]{2}"))){toast("تاریخ تولد را به‌شکل ۱۳۷۰/۰۱/۰۱ وارد کنید");return}
-        if(!(values["job_code"] ?: "").matches(Regex("[0-9]+"))){toast("کد شغل باید عددی باشد");return}
+        if(!EmployeeRules.validNationalId(values["national_id"] ?: "")){toast("کد ملی معتبر نیست");return}
+        if(!EmployeeRules.validSolarDate(values["birth_date"] ?: "")){toast("تاریخ تولد معتبر نیست؛ نمونه: ۱۳۷۰/۰۱/۰۱");return}
+        if(!EmployeeRules.validJobCode(values["job_code"] ?: "")){toast("کد شغل باید عددی باشد");return}
+        val id=selectedId
+        val db=store.writableDatabase
+        if(!db.rawQuery("SELECT 1 FROM workshops WHERE id=?",arrayOf(workshopId.toString())).use { it.moveToFirst() }) {
+            toast("کارگاه انتخاب‌شده دیگر موجود نیست");return
+        }
+        if(db.rawQuery(
+            "SELECT 1 FROM employees WHERE workshop_id=? AND id<>? AND (national_id=? OR insurance_no=?) LIMIT 1",
+            arrayOf(workshopId.toString(),(id ?: -1L).toString(),values["national_id"]!!,insuranceNo)
+        ).use { it.moveToFirst() }) {toast("کد ملی یا شماره بیمه تکراری در همین کارگاه است");return}
+        if(id!=null && db.rawQuery(
+            """SELECT 1 FROM insurance_list_items i JOIN insurance_lists l ON l.id=i.list_id
+               WHERE i.employee_id=? AND l.workshop_id<>? LIMIT 1""",
+            arrayOf(id.toString(),workshopId.toString())
+        ).use { it.moveToFirst() }) {
+            toast("این فرد در لیست کارگاه دیگری سابقه دارد؛ انتقال مستقیم برای حفظ سوابق مجاز نیست")
+            return
+        }
         val data=ContentValues().apply {
             values.forEach { (key,v)->if(key!="personnel_no")put(key,v) }
-            put("gender",gender.selectedItem.toString());put("nationality",nationality.selectedItem.toString())
+            put("workshop_id",workshopId)
+            put("gender",gender.selectedItem.toString())
+            put("nationality",nationality.selectedItem.toString())
         }
         try {
-            val db=store.writableDatabase
-            val id=selectedId
             if(id==null) {
                 db.beginTransaction()
                 try {
-                    data.put("workshop_id",0L)
                     val newId=db.insertOrThrow("employees",null,data)
-                    val personnel=newId.toString().padStart(6,'0')
-                    db.execSQL("UPDATE employees SET personnel_no=? WHERE id=?",arrayOf(personnel,newId))
+                    db.execSQL("UPDATE employees SET personnel_no=? WHERE id=?",
+                        arrayOf(newId.toString().padStart(6,'0'),newId))
                     db.setTransactionSuccessful()
                 } finally { db.endTransaction() }
             } else db.update("employees",data,"id=?",arrayOf(id.toString()))
-            toast("اطلاعات پرسنل ذخیره شد");render()
-        } catch(e:Exception){toast("خطا در ذخیره اطلاعات")}
+            toast("اطلاعات پرسنلی ذخیره شد");render()
+        } catch(ex:Exception){toast("خطا در ذخیره اطلاعات")}
     }
     private fun deleteSelected() {
         val id=selectedId ?: run {toast("ابتدا کارمند را انتخاب کنید");return}
+        val linked=store.readableDatabase.rawQuery(
+            "SELECT COUNT(*) FROM insurance_list_items WHERE employee_id=?",arrayOf(id.toString())
+        ).use { it.moveToFirst();it.getInt(0) }
+        if(linked>0) {
+            AlertDialog.Builder(this).setTitle("حفظ سوابق بیمه")
+                .setMessage("این کارمند در $linked ریزکارکرد ثبت‌شده سابقه دارد. برای جلوگیری از مخدوش‌شدن گزارش‌ها، حذف امکان‌پذیر نیست.")
+                .setPositiveButton("متوجه شدم",null).show()
+            return
+        }
         AlertDialog.Builder(this).setTitle("حذف کارمند").setMessage("اطلاعات کارمند انتخاب‌شده حذف شود؟")
-            .setPositiveButton("حذف"){_,_->store.writableDatabase.delete("employees","id=?",arrayOf(id.toString()));render()}
-            .setNegativeButton("انصراف",null).show()
+            .setPositiveButton("حذف"){_,_->
+                val used=store.readableDatabase.rawQuery(
+                    "SELECT 1 FROM insurance_list_items WHERE employee_id=? LIMIT 1",arrayOf(id.toString())
+                ).use { it.moveToFirst() }
+                if(used)toast("کارمند دارای سوابق بیمه است و قابل حذف نیست")
+                else {store.writableDatabase.delete("employees","id=?",arrayOf(id.toString()));render()}
+            }.setNegativeButton("انصراف",null).show()
     }
     private fun toast(message:String)=Toast.makeText(this,message,Toast.LENGTH_LONG).show()
 }
