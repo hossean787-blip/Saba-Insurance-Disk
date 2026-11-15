@@ -26,11 +26,11 @@ class WorkDetailActivity : Activity() {
     )
 
     private val store by lazy { MainActivity.Store(this) }
-    private val blue=Color.rgb(8,58,125)
-    private val ink=Color.rgb(23,48,83)
-    private val muted=Color.rgb(90,110,137)
-    private val pale=Color.rgb(233,244,255)
-    private val border=Color.rgb(211,225,241)
+    private val blue=SuraUi.primary
+    private val ink=SuraUi.title
+    private val muted=SuraUi.muted
+    private val pale=SuraUi.pastel
+    private val border=SuraUi.line
     private val danger=Color.rgb(164,68,40)
 
     private lateinit var root:LinearLayout
@@ -136,7 +136,7 @@ class WorkDetailActivity : Activity() {
             orientation=LinearLayout.VERTICAL
             layoutDirection=View.LAYOUT_DIRECTION_RTL
             setPadding(dp(15),dp(16),dp(15),dp(27))
-            setBackgroundColor(Color.rgb(242,247,253))
+            setBackgroundColor(SuraUi.canvas)
         }
         val scroll=ScrollView(this).apply {
             isFillViewport=true;clipToPadding=false;addView(root)
@@ -151,23 +151,9 @@ class WorkDetailActivity : Activity() {
             view.setPadding(0,top,0,bottom+dp(12))
             insets
         }
-        setContentView(scroll)
-        val header=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL
-            setPadding(dp(18),dp(18),dp(18),dp(19))
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(6,45,104),Color.rgb(10,109,197))).apply {
-                cornerRadius=dp(20).toFloat()
-            }
-        }
-        header.addView(label("▥  ریزکارکرد کارکنان",23f,Color.WHITE).apply {
-            setTypeface(null,Typeface.BOLD)
-        })
-        header.addView(label("سورا  |  ثبت روزهای کارکرد و دستمزد ماهانه",
-            12f,Color.rgb(221,236,255)).apply {
-                setPadding(0,dp(5),0,0)
-            })
-        root.addView(header,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(14)})
+        setContentView(SuraUi.mount(this,scroll,"details"))
+        root.addView(SuraUi.banner(this,"ریزکارکرد کارکنان","روزهای کارکرد، دستمزد و مزایای مشمول","details"),
+            LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(14)})
 
         toolbar(
             Triple("جدید","＋",{newItem()}),
@@ -508,7 +494,7 @@ class WorkDetailActivity : Activity() {
                 invalid->Color.rgb(255,240,229)
                 chosen->Color.rgb(210,231,255)
                 index%2==0->Color.WHITE
-                else->Color.rgb(240,247,255)
+                else->SuraUi.pastel
             }
             this.background=shape(background,7,if(chosen)Color.rgb(55,128,210) else 0)
             val widths=listOf(148,105,65,132,132,147)

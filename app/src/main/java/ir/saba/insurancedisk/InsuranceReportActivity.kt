@@ -24,11 +24,11 @@ import java.io.File
 open class InsuranceReportActivity : Activity() {
     private val store by lazy { MainActivity.Store(this) }
     private val pdfMode by lazy { intent.getBooleanExtra("pdf",false) }
-    private val navy=Color.rgb(8,49,105)
-    private val ink=Color.rgb(23,48,83)
-    private val muted=Color.rgb(93,111,137)
-    private val outline=Color.rgb(211,225,241)
-    private val pale=Color.rgb(240,247,255)
+    private val navy=SuraUi.primary
+    private val ink=SuraUi.title
+    private val muted=SuraUi.muted
+    private val outline=SuraUi.line
+    private val pale=SuraUi.pastel
     private val requestSavePdf=8271
 
     private lateinit var selector:Spinner
@@ -83,7 +83,7 @@ open class InsuranceReportActivity : Activity() {
             orientation=LinearLayout.VERTICAL
             layoutDirection=View.LAYOUT_DIRECTION_RTL
             setPadding(dp(15),dp(16),dp(15),dp(27))
-            setBackgroundColor(Color.rgb(242,247,253))
+            setBackgroundColor(SuraUi.canvas)
         }
         val scroll=ScrollView(this).apply {isFillViewport=true;addView(root)}
         scroll.setOnApplyWindowInsetsListener { view,insets ->
@@ -95,25 +95,9 @@ open class InsuranceReportActivity : Activity() {
                 else insets.systemWindowInsetBottom
             view.setPadding(0,top,0,bottom+dp(12));insets
         }
-        setContentView(scroll)
-        val header=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL
-            setPadding(dp(18),dp(18),dp(18),dp(19))
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(6,45,104),Color.rgb(10,109,197))).apply {
-                cornerRadius=dp(20).toFloat()
-            }
-        }
-        header.addView(label(
-            if(pdfMode)"▧  خروجی PDF لیست بیمه" else "◉  نمایش لیست بیمه",
-            22f,Color.WHITE
-        ).apply{setTypeface(null,Typeface.BOLD)})
-        header.addView(label(
-            if(pdfMode)"پیش‌نمایش واقعی، ذخیره و اشتراک‌گذاری گزارش A4"
-                else "مشاهده جزئیات و ارقام ثبت‌شده، بدون تغییر اطلاعات",
-            12f,Color.rgb(219,234,255)
-        ).apply{setPadding(0,dp(7),0,0)})
-        root.addView(header,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(15)})
+        setContentView(SuraUi.mount(this,scroll,"reports"))
+        root.addView(SuraUi.banner(this,"خروجی و گزارش بیمه","پیش‌نمایش، PDF و اشتراک‌گذاری","report"),
+            LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(14)})
 
         root.addView(headline("انتخاب لیست بیمه ماهانه"))
         store.readableDatabase.rawQuery(

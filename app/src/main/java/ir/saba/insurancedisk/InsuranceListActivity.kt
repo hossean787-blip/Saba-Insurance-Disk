@@ -18,11 +18,11 @@ import java.lang.Math
 class InsuranceListActivity : Activity() {
     private data class Workshop(val id:Long,val name:String,val code:String)
     private val store by lazy { MainActivity.Store(this) }
-    private val blue=Color.rgb(8,58,125)
-    private val ink=Color.rgb(23,48,83)
-    private val muted=Color.rgb(90,110,137)
-    private val pale=Color.rgb(233,244,255)
-    private val border=Color.rgb(211,225,241)
+    private val blue=SuraUi.primary
+    private val ink=SuraUi.title
+    private val muted=SuraUi.muted
+    private val pale=SuraUi.pastel
+    private val border=SuraUi.line
     private lateinit var root:LinearLayout
     private lateinit var listTable:LinearLayout
     private lateinit var horizontal:HorizontalScrollView
@@ -96,7 +96,7 @@ class InsuranceListActivity : Activity() {
         root=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL
             setPadding(dp(15),dp(16),dp(15),dp(30))
-            setBackgroundColor(Color.rgb(242,247,253))
+            setBackgroundColor(SuraUi.canvas)
         }
         val scroll=ScrollView(this).apply { isFillViewport=true;clipToPadding=false;addView(root) }
         scroll.setOnApplyWindowInsetsListener { view,insets ->
@@ -108,21 +108,9 @@ class InsuranceListActivity : Activity() {
                 else insets.systemWindowInsetBottom
             view.setPadding(0,top,0,bottom+dp(12));insets
         }
-        setContentView(scroll)
-        val header=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL
-            setPadding(dp(18),dp(18),dp(18),dp(19))
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(6,45,104),Color.rgb(10,109,197))).apply {
-                cornerRadius=dp(20).toFloat()
-            }
-        }
-        header.addView(label("▤  لیست بیمه ماهانه",23f,Color.WHITE).apply {
-            setTypeface(null,Typeface.BOLD)
-        })
-        header.addView(label("سورا  |  مدیریت لیست‌های بیمه کارگاه‌ها",
-            12f,Color.rgb(221,236,255)).apply {setPadding(0,dp(5),0,0)})
-        root.addView(header,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(14)})
+        setContentView(SuraUi.mount(this,scroll,"lists"))
+        root.addView(SuraUi.banner(this,"لیست بیمه ماهانه","دوره‌های بیمه، گزارش و مشخصات لیست","list"),
+            LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(14)})
         toolbar(
             Triple("جدید","＋",{startNew()}),
             Triple("ویرایش","✎",{startEdit()}),
@@ -277,7 +265,7 @@ class InsuranceListActivity : Activity() {
             header->blue
             chosen->Color.rgb(210,231,255)
             index%2==0->Color.WHITE
-            else->Color.rgb(240,247,255)
+            else->SuraUi.pastel
         }
         return LinearLayout(this).apply{
             orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL

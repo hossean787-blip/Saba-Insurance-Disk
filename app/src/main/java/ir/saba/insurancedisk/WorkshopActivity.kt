@@ -23,10 +23,10 @@ class WorkshopActivity : Activity() {
     private lateinit var rate: EditText
     private var selectedId: Long? = null
     private var editing = false
-    private val blue = Color.rgb(8, 58, 125)
+    private val blue = SuraUi.primary
     private val gold = Color.rgb(234, 174, 52)
-    private val ink = Color.rgb(23, 48, 83)
-    private val muted = Color.rgb(92, 111, 137)
+    private val ink = SuraUi.title
+    private val muted = SuraUi.muted
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +52,7 @@ class WorkshopActivity : Activity() {
         label("$icon  $title",14f,color).apply {
             gravity=Gravity.CENTER
             setTypeface(null,Typeface.BOLD)
-            background=shape(Color.WHITE,13,Color.rgb(213,225,241))
+            background=shape(Color.WHITE,13,SuraUi.line)
             elevation=dp(2).toFloat()
             setOnClickListener { action() }
         }
@@ -69,7 +69,7 @@ class WorkshopActivity : Activity() {
     private fun field(container:LinearLayout, title:String, decimal:Boolean=false, numeric:Boolean=false):EditText {
         val box=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
-            background=shape(Color.WHITE,12,Color.rgb(220,230,242))
+            background=shape(Color.WHITE,12,SuraUi.line)
             setPadding(dp(10),dp(8),dp(10),dp(4))
         }
         box.addView(label(title,12f,muted))
@@ -99,7 +99,7 @@ class WorkshopActivity : Activity() {
         root=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL; layoutDirection=View.LAYOUT_DIRECTION_RTL
             setPadding(dp(15),dp(16),dp(15),dp(22))
-            setBackgroundColor(Color.rgb(242,247,253))
+            setBackgroundColor(SuraUi.canvas)
         }
         val scroll=ScrollView(this).apply { isFillViewport=true; addView(root) }
         scroll.clipToPadding=false
@@ -109,16 +109,10 @@ class WorkshopActivity : Activity() {
             view.setPadding(0,top,0,bottom+dp(12))
             insets
         }
-        setContentView(scroll)
+        setContentView(SuraUi.mount(this,scroll,"workshops"))
 
-        val header=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(6,45,104),Color.rgb(10,109,197))).apply { cornerRadius=dp(20).toFloat() }
-            setPadding(dp(18),dp(18),dp(18),dp(19))
-        }
-        header.addView(label("▣  مشخصات کارگاه‌ها",23f,Color.WHITE).apply { setTypeface(null,Typeface.BOLD) })
-        header.addView(label("صبا  |  مدیریت اطلاعات کارگاه‌های بیمه",12f,Color.rgb(222,235,255)).apply { setPadding(0,dp(6),0,0) })
-        root.addView(header,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(14) })
+        root.addView(SuraUi.banner(this,"مدیریت کارگاه‌ها","ثبت و سازماندهی اطلاعات کارگاه بیمه","building"),
+            LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(14)})
 
         addButtonRow(listOf(
             Triple("جدید","＋",{ clear(true) }),
@@ -134,7 +128,7 @@ class WorkshopActivity : Activity() {
         val searchBox=LinearLayout(this).apply {
             orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL
             gravity=Gravity.CENTER_VERTICAL
-            background=shape(Color.WHITE,14,Color.rgb(207,222,241))
+            background=shape(Color.WHITE,14,SuraUi.line)
             setPadding(dp(12),dp(5),dp(12),dp(5))
         }
         val searchInput=EditText(this).apply {
@@ -150,7 +144,7 @@ class WorkshopActivity : Activity() {
         root.addView(label("فهرست کارگاه‌ها",17f,blue).apply {
             setTypeface(null,Typeface.BOLD); setPadding(0,0,0,dp(9))
         })
-        val table=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; background=shape(Color.WHITE,13,Color.rgb(209,224,241)); setPadding(dp(4),dp(4),dp(4),dp(4)) }
+        val table=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; background=shape(Color.WHITE,13,SuraUi.line); setPadding(dp(4),dp(4),dp(4),dp(4)) }
         fun tableRow(columns:List<String>, header:Boolean, id:Long?=null, index:Int=0) {
             val row=LinearLayout(this).apply {
                 orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL; gravity=Gravity.CENTER_VERTICAL

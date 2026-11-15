@@ -22,12 +22,12 @@ internal object InsurancePdfWriter {
     private const val MARGIN=30f
     private const val BODY_WIDTH=WIDTH-2*MARGIN
     private const val CONTENT_BOTTOM=766f
-    private const val NAVY=0xff092f66.toInt()
-    private const val BLUE=0xff0c68b2.toInt()
-    private const val INK=0xff1a3559.toInt()
-    private const val MUTED=0xff657991.toInt()
-    private const val BORDER=0xffd6e3f2.toInt()
-    private const val PALE=0xfff0f6ff.toInt()
+    private const val NAVY=0xff2c3e4c.toInt()
+    private const val BLUE=0xff3944bc.toInt()
+    private const val INK=0xff263045.toInt()
+    private const val MUTED=0xff6d778e.toInt()
+    private const val BORDER=0xffe3e6f3.toInt()
+    private const val PALE=0xffeeefff.toInt()
 
     fun write(report:InsuranceReportData, output:OutputStream):Int {
         val pdf=PdfDocument()
