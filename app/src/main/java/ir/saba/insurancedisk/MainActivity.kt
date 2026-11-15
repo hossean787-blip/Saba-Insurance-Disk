@@ -13,6 +13,7 @@ import android.widget.*
 class MainActivity : Activity() {
     private lateinit var db: Store
     private lateinit var root: LinearLayout
+    private var dashboardShownOnce=false
     private val navy = Color.rgb(14,25,45)
 
     class Store(activity: Activity): SQLiteOpenHelper(activity,"insurance.db",null,5) {
@@ -49,6 +50,12 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         db=Store(this)
         home()
+    }
+
+    // Keep the SQL-backed dashboard accurate after returning from the editor screens.
+    override fun onResume() {
+        super.onResume()
+        if(dashboardShownOnce)home() else dashboardShownOnce=true
     }
 
     private fun page(title:String) {
