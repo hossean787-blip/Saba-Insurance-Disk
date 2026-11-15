@@ -12,7 +12,7 @@ internal object WorkDetailRules {
     ):Boolean {
         val needle=EmployeeRules.normalizeDigits(query.trim())
         val haystack=EmployeeRules.normalizeDigits(
-            "$"+"name $"+"insuranceNo $"+"personnelNo $"+"employeeId"
+            name + " " + insuranceNo + " " + personnelNo + " " + employeeId
         )
         return needle.isEmpty() || haystack.contains(needle,ignoreCase=true)
     }
