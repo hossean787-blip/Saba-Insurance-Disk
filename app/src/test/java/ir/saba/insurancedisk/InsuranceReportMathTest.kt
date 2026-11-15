@@ -65,6 +65,14 @@ class InsuranceReportMathTest {
         }
     }
 
+    @Test fun cannotShareFileBelongingToAnotherList() {
+        assertTrue(InsuranceReportSelection.canShare(12L,12L,true))
+        assertFalse(InsuranceReportSelection.canShare(12L,13L,true))
+        assertFalse(InsuranceReportSelection.canShare(12L,null,true))
+        assertFalse(InsuranceReportSelection.canShare(null,12L,true))
+        assertFalse(InsuranceReportSelection.canShare(12L,12L,false))
+    }
+
     @Test fun filenameUsesListPeriodAndSafeWorkshopCode(){
         val data=InsuranceReportData(
             header(),emptyList(),InsuranceReportMath.sum(emptyList()),emptyList()

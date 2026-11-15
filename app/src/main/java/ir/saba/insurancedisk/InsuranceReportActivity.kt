@@ -41,6 +41,8 @@ open class InsuranceReportActivity : Activity() {
     private val listRefs=mutableListOf<Pair<Long,String>>()
     private var current:InsuranceReportData?=null
     private var lastSavedUri:Uri?=null
+    private var lastSavedListId:Long?=null
+    private var pendingExportListId:Long?=null
     private var previewFile:File?=null
     private var pageIndex=0
     private var pages=0
@@ -74,6 +76,8 @@ open class InsuranceReportActivity : Activity() {
         savedInstanceState?.getString("lastUri")?.let {
             lastSavedUri=Uri.parse(it)
         }
+        lastSavedListId=savedInstanceState?.getLong("lastSavedListId",-1L)?.takeIf{it>=0}
+        pendingExportListId=savedInstanceState?.getLong("pendingExportListId",-1L)?.takeIf{it>=0}
         val lastId=savedInstanceState?.getLong("listId",-1L) ?: -1L
         val root=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
@@ -136,6 +140,12 @@ open class InsuranceReportActivity : Activity() {
             setPadding(dp(9),dp(4),dp(9),dp(4))
         }
         root.addView(selector,LinearLayout.LayoutParams(-1,dp(55)))
+        selector.onItemSelectedListener=object:android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent:android.widget.AdapterView<*>?) {}
+            override fun onItemSelected(
+                parent:android.widget.AdapterView<*>?,view:View?,position:Int,id:Long
+            ) { updateShareButton() }
+        }
 
         val actions=LinearLayout(this).apply {
             orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL
@@ -155,8 +165,7 @@ open class InsuranceReportActivity : Activity() {
             shareButton=action("اشتراک‌گذاری","↗"){sharePdf()}
             export.addView(shareButton,
                 LinearLayout.LayoutParams(0,dp(52),1f).apply{setMargins(dp(3),dp(3),dp(3),dp(6))})
-            shareButton.isEnabled=lastSavedUri!=null
-            shareButton.alpha=if(shareButton.isEnabled)1f else 0.45f
+            updateShareButton()
             root.addView(export)
         }
 
@@ -202,6 +211,16 @@ open class InsuranceReportActivity : Activity() {
         if(::selector.isInitialized && listRefs.isNotEmpty())
             outState.putLong("listId",listRefs[selector.selectedItemPosition].first)
         lastSavedUri?.let {outState.putString("lastUri",it.toString())}
+        lastSavedListId?.let {outState.putLong("lastSavedListId",it)}
+        pendingExportListId?.let {outState.putLong("pendingExportListId",it)}
+    }
+    private fun updateShareButton(){
+        if(!pdfMode || !::shareButton.isInitialized)return
+        val enabled=InsuranceReportSelection.canShare(
+            lastSavedListId,currentId(),lastSavedUri!=null
+        )
+        shareButton.isEnabled=enabled
+        shareButton.alpha=if(enabled)1f else 0.45f
     }
     private fun format(n:Long)=String.format(java.util.Locale.US,"%,d",n)
     private fun currentId():Long?=if(!::selector.isInitialized || listRefs.isEmpty())null
@@ -209,6 +228,11 @@ open class InsuranceReportActivity : Activity() {
 
     private fun renderSelected(){
         val id=currentId() ?:return
+        if(lastSavedListId!=id){
+            lastSavedUri=null
+            lastSavedListId=null
+        }
+        updateShareButton()
         try {
             val data=InsuranceReportRepository(store.readableDatabase).load(id)
             current=data
@@ -339,39 +363,54 @@ open class InsuranceReportActivity : Activity() {
     }
     private fun savePdf(){
         val selected=currentId() ?:run{notice("لیست انتخاب کنید");return}
-        if(current?.header?.listId!=selected)renderSelected()
-        val report=current ?:run{notice("ابتدا گزارش معتبر را نمایش دهید");return}
+        // Capture an up-to-date snapshot for the chosen report before saving.
+        renderSelected()
+        val report=current?.takeIf { it.header.listId==selected }
+            ?:run{notice("ابتدا گزارش معتبر را نمایش دهید");return}
         val intent=Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type="application/pdf"
             putExtra(Intent.EXTRA_TITLE,InsurancePdfWriter.fileName(report))
         }
+        pendingExportListId=selected
         try {startActivityForResult(intent,requestSavePdf)}
-        catch(ex:Exception){notice("دسترسی به انتخاب محل ذخیره PDF ممکن نشد")}
+        catch(ex:Exception){
+            pendingExportListId=null
+            notice("دسترسی به انتخاب محل ذخیره PDF ممکن نشد")
+        }
     }
     @Deprecated("The platform callback is used to support API 26+ without extra dependencies.")
     override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?) {
         super.onActivityResult(requestCode,resultCode,data)
-        if(requestCode!=requestSavePdf || resultCode!=RESULT_OK)return
+        if(requestCode!=requestSavePdf)return
+        val listId=pendingExportListId
+        pendingExportListId=null
+        if(resultCode!=RESULT_OK)return
         val uri=data?.data ?:run{notice("محل ذخیره انتخاب نشده است");return}
-        val report=current ?:run{notice("گزارش برای ذخیره در دسترس نیست");return}
+        if(listId==null){notice("لیست مرتبط با فایل مشخص نیست؛ ذخیره لغو شد");return}
         try {
+            // Read by the ID captured before opening the system document picker.
+            // This remains correct even if Android recreates the activity.
+            val report=InsuranceReportRepository(store.readableDatabase).load(listId)
             contentResolver.openOutputStream(uri,"w")?.use { stream ->
                 InsurancePdfWriter.write(report,stream)
             } ?: error("امکان نوشتن فایل وجود ندارد")
             lastSavedUri=uri
-            shareButton.isEnabled=true
-            shareButton.alpha=1f
+            lastSavedListId=listId
+            updateShareButton()
             notice("فایل PDF با موفقیت در محل انتخاب‌شده ذخیره شد")
         }catch(ex:Exception){
             lastSavedUri=null
-            shareButton.isEnabled=false
-            shareButton.alpha=0.45f
+            lastSavedListId=null
+            updateShareButton()
             notice("ذخیره PDF ناموفق بود: ${ex.message}")
         }
     }
     private fun sharePdf(){
-        val uri=lastSavedUri ?:run{notice("ابتدا PDF را ذخیره کنید");return}
+        if(!InsuranceReportSelection.canShare(
+                lastSavedListId,currentId(),lastSavedUri!=null
+            )){notice("ابتدا PDF همین لیست را ذخیره کنید");return}
+        val uri=lastSavedUri ?:return
         val intent=Intent(Intent.ACTION_SEND).apply {
             type="application/pdf"
             putExtra(Intent.EXTRA_STREAM,uri)

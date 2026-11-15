@@ -74,7 +74,7 @@ internal object InsurancePdfWriter {
                 isSubpixelText=true
             }
             return StaticLayout.Builder.obtain(content,0,content.length,p,width.toInt().coerceAtLeast(1))
-                .setAlignment(if(center)Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_OPPOSITE)
+                .setAlignment(if(center)Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_NORMAL)
                 .setTextDirection(TextDirectionHeuristics.RTL)
                 .setIncludePad(false)
                 .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)

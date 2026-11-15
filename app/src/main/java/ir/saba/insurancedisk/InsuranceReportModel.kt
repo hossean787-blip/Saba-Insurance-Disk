@@ -33,6 +33,11 @@ internal data class InsuranceReportData(
     val warnings:List<String>
 )
 
+internal object InsuranceReportSelection {
+    fun canShare(savedListId:Long?,selectedListId:Long?,hasSavedUri:Boolean):Boolean =
+        hasSavedUri && savedListId!=null && savedListId==selectedListId
+}
+
 internal object InsuranceReportMath {
     fun monthlyWage(person:InsuranceReportPerson):Long =
         Math.multiplyExact(person.days.toLong(),person.dailyWage)
