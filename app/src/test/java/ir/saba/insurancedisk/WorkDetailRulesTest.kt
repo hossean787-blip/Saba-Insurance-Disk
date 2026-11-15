@@ -32,6 +32,22 @@ class WorkDetailRulesTest {
         assertNull(WorkDetailRules.calculate("1","9223372036854775807","1",1))
     }
 
+    @Test fun placeholderIndicesNeverSelectTheWrongEmployee() {
+        val employees=listOf(101L,202L,303L)
+        assertNull(WorkDetailRules.fromPlaceholder(employees,0))
+        assertNull(WorkDetailRules.fromPlaceholder(employees,-1))
+        assertEquals(101L,WorkDetailRules.fromPlaceholder(employees,1))
+        assertEquals(202L,WorkDetailRules.fromPlaceholder(employees,2))
+        assertEquals(303L,WorkDetailRules.fromPlaceholder(employees,3))
+        assertNull(WorkDetailRules.fromPlaceholder(employees,4))
+    }
+    @Test fun employeeSearchIncludesPersonnelNumber() {
+        assertTrue(WorkDetailRules.matchesSearch("علی رضایی","0012003456","000025",3L,"۲۵"))
+        assertTrue(WorkDetailRules.matchesSearch("علی رضایی","0012003456","000025",3L,"رضایی"))
+        assertTrue(WorkDetailRules.matchesSearch("علی رضایی","0012003456","000025",3L,""))
+        assertFalse(WorkDetailRules.matchesSearch("علی رضایی","0012003456","000025",3L,"99999"))
+    }
+
     @Test fun acceptsDigitSeparators() {
         val r=WorkDetailRules.calculate("۱","۱٬۰۰۰٬۰۰۰","۲۰,۰۰۰",1)
         assertEquals(1_020_000L,r!!.total)

@@ -4,6 +4,19 @@ package ir.saba.insurancedisk
 internal object WorkDetailRules {
     data class Calculation(val days:Int,val dailyWage:Long,val benefits:Long,val total:Long)
 
+    fun <T> fromPlaceholder(items:List<T>,selectedIndex:Int):T? =
+        if(selectedIndex<=0)null else items.getOrNull(selectedIndex-1)
+
+    fun matchesSearch(
+        name:String,insuranceNo:String,personnelNo:String,employeeId:Long,query:String
+    ):Boolean {
+        val needle=EmployeeRules.normalizeDigits(query.trim())
+        val haystack=EmployeeRules.normalizeDigits(
+            "$"+"name $"+"insuranceNo $"+"personnelNo $"+"employeeId"
+        )
+        return needle.isEmpty() || haystack.contains(needle,ignoreCase=true)
+    }
+
     fun parseNonnegative(raw:String):Long? {
         val value=EmployeeRules.normalizeDigits(raw.trim()
             .replace(",", "").replace("٬", ""))

@@ -21,7 +21,8 @@ class WorkDetailActivity : Activity() {
     private data class Employee(val id:Long,val name:String,val insurance:String)
     private data class Item(
         val id:Long,val employeeId:Long,val name:String,val insurance:String,
-        val days:Int,val dailyWage:Long,val benefits:Long,val workshopId:Long?
+        val days:Int,val dailyWage:Long,val benefits:Long,val workshopId:Long?,
+        val personnelNumber:String=""
     )
 
     private val store by lazy { MainActivity.Store(this) }
@@ -106,7 +107,9 @@ class WorkDetailActivity : Activity() {
         setSingleLine(true)
     }
     private fun currentList():InsuranceList?=lists.getOrNull(listPicker.selectedItemPosition)
-    private fun selectedEmployee():Employee?=employees.getOrNull(employeePicker.selectedItemPosition)
+    // Spinner position 0 is the label "انتخاب کارمند", not an employee.
+    private fun selectedEmployee():Employee?=
+        WorkDetailRules.fromPlaceholder(employees,employeePicker.selectedItemPosition)
 
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
@@ -559,7 +562,8 @@ class WorkDetailActivity : Activity() {
         store.readableDatabase.rawQuery(
             """SELECT i.id,i.employee_id,COALESCE(e.first_name,''),
                       COALESCE(e.last_name,''),COALESCE(e.insurance_no,''),
-                      i.days,i.daily_wage,i.benefits,e.workshop_id
+                      i.days,i.daily_wage,i.benefits,e.workshop_id,
+                      COALESCE(e.personnel_no,'')
                FROM insurance_list_items i
                LEFT JOIN employees e ON e.id=i.employee_id
                WHERE i.list_id=? ORDER BY e.last_name,e.first_name,i.id""",
@@ -569,7 +573,7 @@ class WorkDetailActivity : Activity() {
                 val item=Item(c.getLong(0),c.getLong(1),
                     "${c.getString(2)} ${c.getString(3)}".trim(),
                     c.getString(4),c.getInt(5),c.getLong(6),c.getLong(7),
-                    if(c.isNull(8))null else c.getLong(8))
+                    if(c.isNull(8))null else c.getLong(8),c.getString(9))
                 val incompatible=item.workshopId!=list.workshopId
                 if(incompatible)mismatch++
                 try {
@@ -581,8 +585,9 @@ class WorkDetailActivity : Activity() {
                     grandTotal=Math.addExact(wagesTotal,benefitsTotal)
                 }catch(ex:ArithmeticException){overflow=true}
                 val name=item.name.ifEmpty{"کارمند ناموجود"}
-                val haystack=EmployeeRules.normalizeDigits("$name ${item.insurance} ${item.employeeId}")
-                if(needle.isNotEmpty()&&!haystack.contains(needle,ignoreCase=true))continue
+                if(!WorkDetailRules.matchesSearch(
+                    name,item.insurance,item.personnelNumber,item.employeeId,needle
+                ))continue
                 val total=try {
                     amount(Math.addExact(Math.multiplyExact(item.days.toLong(),item.dailyWage),
                         item.benefits))
