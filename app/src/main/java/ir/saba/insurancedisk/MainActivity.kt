@@ -283,6 +283,26 @@ class MainActivity : Activity() {
         activity.addView(info,LinearLayout.LayoutParams(0,-2,1f))
         activity.addView(SuraUi.glyph(this,"list",SuraUi.primary,24))
         content.addView(activity)
+        val settingsCard=LinearLayout(this).apply{
+            orientation=LinearLayout.HORIZONTAL
+            layoutDirection=View.LAYOUT_DIRECTION_RTL
+            gravity=android.view.Gravity.CENTER_VERTICAL
+            background=SuraUi.surface(this@MainActivity)
+            setPadding(dp(14),dp(13),dp(14),dp(13))
+            isClickable=true
+            setOnClickListener{notice()}
+        }
+        settingsCard.addView(SuraUi.glyph(this,"gear",SuraUi.primary,22))
+        val settingTexts=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
+        settingTexts.addView(SuraUi.label(this,"تنظیمات برنامه",13f,SuraUi.title,true))
+        settingTexts.addView(SuraUi.label(this,"پیکربندی پیشرفته • در دست تکمیل",
+            11f,SuraUi.muted).apply{setPadding(0,dp(4),0,0)})
+        settingsCard.addView(settingTexts,LinearLayout.LayoutParams(-1,-2).apply{
+            rightMargin=dp(11)
+        })
+        content.addView(settingsCard,LinearLayout.LayoutParams(-1,-2).apply{
+            topMargin=dp(16)
+        })
         val about=LinearLayout(this).apply{
             orientation=LinearLayout.HORIZONTAL
             layoutDirection=View.LAYOUT_DIRECTION_RTL
