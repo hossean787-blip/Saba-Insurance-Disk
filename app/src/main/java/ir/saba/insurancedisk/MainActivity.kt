@@ -79,71 +79,225 @@ class MainActivity : Activity() {
     }
 
     private fun home() {
-        window.statusBarColor=Color.rgb(4,43,99)
-        val shell=LinearLayout(this).apply {
+        window.statusBarColor=SuraUi.charcoal
+        fun dp(v:Int)=(v*resources.displayMetrics.density+0.5f).toInt()
+        val content=LinearLayout(this).apply{
             orientation=LinearLayout.VERTICAL
             layoutDirection=View.LAYOUT_DIRECTION_RTL
-            setBackgroundColor(Color.rgb(241,246,254))
+            setPadding(dp(16),dp(19),dp(16),dp(27))
+            setBackgroundColor(SuraUi.canvas)
         }
-        val header=LinearLayout(this).apply {
-            orientation=LinearLayout.HORIZONTAL
-            gravity=android.view.Gravity.CENTER_VERTICAL
-            setPadding(22,38,22,32)
-            setBackgroundColor(Color.rgb(6,53,117))
-        }
-        header.addView(ImageView(this).apply {
-            setImageResource(R.drawable.sura_launcher)
-            layoutParams=LinearLayout.LayoutParams(72,72)
-        })
-        val heading=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(18,0,0,0) }
-        heading.addView(TextView(this).apply { text="سورا";textSize=33f;setTextColor(Color.WHITE);setTypeface(null,1) })
-        heading.addView(TextView(this).apply { text="لیست دیسک تأمین اجتماعی";textSize=14f;setTextColor(Color.rgb(217,234,255)) })
-        header.addView(heading)
-        shell.addView(header)
-        val scroll=ScrollView(this)
-        val menu=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(22,24,22,24) }
-        scroll.addView(menu)
-        shell.addView(scroll)
-        fun tile(title:String,subtitle:String,symbol:String,bg:Int,fg:Int,click:()->Unit) {
-            val card=LinearLayout(this).apply {
-                orientation=LinearLayout.HORIZONTAL
-                gravity=android.view.Gravity.CENTER_VERTICAL
-                setPadding(22,23,22,23)
-                background=android.graphics.drawable.GradientDrawable().apply {
-                    setColor(bg);cornerRadius=22f
-                    setStroke(2,Color.rgb(215,225,239))
-                }
-                elevation=5f
-                setOnClickListener { click() }
+        val scroll=ScrollView(this).apply{
+            isFillViewport=true
+            clipToPadding=false
+            addView(content)
+            setOnApplyWindowInsetsListener{view,insets->
+                val top=if(android.os.Build.VERSION.SDK_INT>=30)
+                    insets.getInsets(android.view.WindowInsets.Type.statusBars()).top
+                    else insets.systemWindowInsetTop
+                view.setPadding(0,top,0,0);insets
             }
-            val mark=TextView(this).apply { text=symbol;textSize=28f;setTextColor(fg);gravity=android.view.Gravity.CENTER }
-            card.addView(mark,LinearLayout.LayoutParams(64,76))
-            val labels=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(12,0,0,0) }
-            labels.addView(TextView(this).apply { text=title;textSize=20f;setTypeface(null,1);setTextColor(fg) })
-            labels.addView(TextView(this).apply { text=subtitle;textSize=13f;setTextColor(Color.rgb(78,97,126)) })
-            card.addView(labels,LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.WRAP_CONTENT,1f))
-            card.addView(TextView(this).apply { text="‹";textSize=28f;setTextColor(fg) })
-            menu.addView(card,LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin=16 })
         }
-        tile("کارگاه‌ها","مدیریت مشخصات کارگاه‌ها","▣",Color.rgb(220,239,255),Color.rgb(4,92,188)) {
-            startActivity(android.content.Intent(this,WorkshopActivity::class.java))
+        setContentView(SuraUi.mount(this,scroll,"home"))
+        val hero=LinearLayout(this).apply{
+            orientation=LinearLayout.VERTICAL
+            background=SuraUi.gradient(this@MainActivity,24)
+            elevation=dp(5).toFloat()
+            setPadding(dp(20),dp(20),dp(20),dp(19))
         }
-        tile("کارکنان","مدیریت اطلاعات کارکنان","♟",Color.rgb(224,249,239),Color.rgb(6,130,83)) { startActivity(android.content.Intent(this,EmployeeActivity::class.java)) }
-        tile("لیست بیمه","ثبت و مدیریت لیست ماهانه","▤",Color.rgb(255,240,219),Color.rgb(188,106,0)) { startActivity(android.content.Intent(this,InsuranceListActivity::class.java)) }
-        tile("ریزکارکرد","ثبت کارکرد و دستمزد کارکنان لیست","▥",Color.rgb(229,244,250),Color.rgb(4,110,145)) { startActivity(android.content.Intent(this,WorkDetailActivity::class.java)) }
-        tile("نمایش","پیش‌نمایش لیست‌های بیمه ثبت‌شده","◉",Color.rgb(231,242,255),Color.rgb(27,91,169)) { startActivity(android.content.Intent(this,InsurancePreviewActivity::class.java)) }
-        tile("فایل PDF","خروجی PDF لیست بیمه • در دست تکمیل","▧",Color.rgb(255,234,235),Color.rgb(167,48,66)) { startActivity(android.content.Intent(this,InsuranceReportActivity::class.java).putExtra("pdf",true)) }
-        tile("تنظیمات","پیکربندی برنامه • در دست توسعه","⚙",Color.rgb(236,230,255),Color.rgb(98,69,194)) { notice() }
-        tile("درباره برنامه","سورا • نسخه آزمایشی " + packageManager.getPackageInfo(packageName,0).versionName,"ⓘ",Color.rgb(233,242,255),Color.rgb(61,94,151)) {
-            android.app.AlertDialog.Builder(this).setTitle("سورا").setMessage("نرم‌افزار لیست دیسک بیمه — نسخه آزمایشی. خروجی DBF هنوز آماده نیست.").setPositiveButton("باشه",null).show()
+        val brand=LinearLayout(this).apply{
+            orientation=LinearLayout.HORIZONTAL
+            layoutDirection=View.LAYOUT_DIRECTION_RTL
+            gravity=android.view.Gravity.CENTER_VERTICAL
         }
-        shell.setOnApplyWindowInsetsListener { view, insets ->
-            val top=if(android.os.Build.VERSION.SDK_INT>=30) insets.getInsets(android.view.WindowInsets.Type.statusBars()).top else insets.systemWindowInsetTop
-            val bottom=if(android.os.Build.VERSION.SDK_INT>=30) insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom else insets.systemWindowInsetBottom
-            view.setPadding(0,top,0,bottom+24)
-            insets
+        val heading=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
+        heading.addView(SuraUi.label(this,"سورا",30f,Color.WHITE,true))
+        heading.addView(SuraUi.label(this,"دستیار لیست بیمه تأمین اجتماعی",12f,
+            Color.rgb(226,231,255)).apply{setPadding(0,dp(5),0,0)})
+        brand.addView(heading,LinearLayout.LayoutParams(0,-2,1f))
+        val logo=ImageView(this).apply{
+            setImageResource(R.drawable.sura_launcher)
+            scaleType=ImageView.ScaleType.FIT_CENTER
+            background=SuraUi.surface(this@MainActivity,Color.rgb(71,76,169),
+                15,Color.TRANSPARENT)
+            setPadding(dp(5),dp(5),dp(5),dp(5))
         }
-        setContentView(shell)
+        brand.addView(logo,LinearLayout.LayoutParams(dp(60),dp(60)).apply{
+            leftMargin=dp(8)
+        })
+        hero.addView(brand)
+        hero.addView(SuraUi.label(this,
+            "مدیریت دقیق کارگاه، کارکنان و لیست‌های ماهانه",
+            12.5f,Color.rgb(235,238,255)).apply{setPadding(0,dp(19),0,dp(14))})
+        val cta=LinearLayout(this).apply{
+            orientation=LinearLayout.HORIZONTAL
+            layoutDirection=View.LAYOUT_DIRECTION_RTL
+            gravity=android.view.Gravity.CENTER
+            background=SuraUi.surface(this@MainActivity,Color.WHITE,13,Color.TRANSPARENT)
+            setOnClickListener{
+                startActivity(android.content.Intent(this@MainActivity,InsuranceListActivity::class.java))
+            }
+        }
+        cta.addView(SuraUi.glyph(this,"list",SuraUi.primary,20))
+        cta.addView(SuraUi.label(this,"مدیریت لیست ماهانه",
+            14f,SuraUi.primary,true).apply{setPadding(dp(9),0,0,0)})
+        hero.addView(cta,LinearLayout.LayoutParams(-1,dp(48)))
+        content.addView(hero,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(15)})
+
+        fun count(table:String):Long=try{
+            db.readableDatabase.rawQuery("SELECT COUNT(*) FROM $table",null).use{
+                if(it.moveToFirst())it.getLong(0) else 0L
+            }
+        }catch(ex:Exception){0L}
+        fun metric(value:Long,title:String,icon:String):View{
+            val box=LinearLayout(this).apply{
+                orientation=LinearLayout.VERTICAL
+                background=SuraUi.surface(this@MainActivity)
+                elevation=dp(1).toFloat()
+                setPadding(dp(13),dp(14),dp(13),dp(13))
+            }
+            val row=LinearLayout(this).apply{
+                orientation=LinearLayout.HORIZONTAL
+                layoutDirection=View.LAYOUT_DIRECTION_RTL
+                gravity=android.view.Gravity.CENTER_VERTICAL
+            }
+            val badge=LinearLayout(this).apply{
+                gravity=android.view.Gravity.CENTER
+                background=SuraUi.surface(this@MainActivity,SuraUi.pastel,
+                    12,Color.TRANSPARENT)
+            }
+            badge.addView(SuraUi.glyph(this,icon,SuraUi.primary,19))
+            row.addView(badge,LinearLayout.LayoutParams(dp(39),dp(39)))
+            row.addView(SuraUi.label(this,value.toString(),24f,SuraUi.title,true).apply{
+                setPadding(dp(9),0,0,0)
+            })
+            box.addView(row)
+            box.addView(SuraUi.label(this,title,12f,SuraUi.muted).apply{
+                setPadding(0,dp(11),0,0)
+            })
+            return box
+        }
+        fun pair(right:View,left:View,height:Int=0) {
+            val row=LinearLayout(this).apply{
+                orientation=LinearLayout.HORIZONTAL
+                layoutDirection=View.LAYOUT_DIRECTION_RTL
+            }
+            row.addView(right,LinearLayout.LayoutParams(0,if(height==0)-2 else dp(height),1f).apply{
+                leftMargin=dp(5)
+            })
+            row.addView(left,LinearLayout.LayoutParams(0,if(height==0)-2 else dp(height),1f).apply{
+                rightMargin=dp(5)
+            })
+            content.addView(row,LinearLayout.LayoutParams(-1,-2).apply{
+                bottomMargin=dp(10)
+            })
+        }
+        content.addView(SuraUi.section(this,"نمای کلی فعالیت‌ها"))
+        pair(
+            metric(count("workshops"),"کارگاه ثبت‌شده","building"),
+            metric(count("employees"),"کارمند ثبت‌شده","users")
+        )
+        pair(
+            metric(count("insurance_lists"),"لیست ماهانه","list"),
+            metric(count("insurance_list_items"),"ریزکارکرد ثبت‌شده","details")
+        )
+        fun feature(name:String,caption:String,icon:String,
+            target:Class<out Activity>,pdf:Boolean=false):View{
+            val card=LinearLayout(this).apply{
+                orientation=LinearLayout.VERTICAL
+                setPadding(dp(13),dp(14),dp(13),dp(12))
+                background=SuraUi.surface(this@MainActivity)
+                elevation=dp(2).toFloat()
+                isClickable=true;isFocusable=true
+                setOnClickListener{
+                    val next=android.content.Intent(this@MainActivity,target)
+                    if(pdf)next.putExtra("pdf",true)
+                    startActivity(next)
+                }
+            }
+            val mark=LinearLayout(this).apply{
+                gravity=android.view.Gravity.CENTER
+                background=SuraUi.surface(this@MainActivity,SuraUi.pastel,14,Color.TRANSPARENT)
+            }
+            mark.addView(SuraUi.glyph(this,icon,SuraUi.primary,24))
+            card.addView(mark,LinearLayout.LayoutParams(dp(47),dp(47)))
+            card.addView(SuraUi.label(this,name,15.5f,SuraUi.title,true).apply{
+                setPadding(0,dp(11),0,0)
+            })
+            card.addView(SuraUi.label(this,caption,11.5f,SuraUi.muted).apply{
+                maxLines=2;setPadding(0,dp(5),0,0)
+            })
+            return card
+        }
+        content.addView(SuraUi.section(this,"دسترسی سریع"))
+        pair(
+            feature("کارگاه‌ها","مدیریت مشخصات کارگاه","building",WorkshopActivity::class.java),
+            feature("کارکنان","ثبت و مدیریت پرسنل","users",EmployeeActivity::class.java),155
+        )
+        pair(
+            feature("لیست ماهانه","مدیریت دوره‌های بیمه","list",InsuranceListActivity::class.java),
+            feature("ریزکارکرد","کارکرد، مزد و مزایا","details",WorkDetailActivity::class.java),155
+        )
+        pair(
+            feature("نمایش لیست","مشاهده اطلاعات ثبت‌شده","eye",InsurancePreviewActivity::class.java),
+            feature("خروجی PDF","گزارش و اشتراک‌گذاری","report",InsuranceReportActivity::class.java,true),155
+        )
+        content.addView(SuraUi.section(this,"آخرین فعالیت"))
+        val latest=try{
+            db.readableDatabase.rawQuery(
+                """SELECT w.name,l.year,l.month,COUNT(i.id)
+                   FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id
+                   LEFT JOIN insurance_list_items i ON i.list_id=l.id
+                   GROUP BY l.id ORDER BY l.year DESC,l.month DESC,l.id DESC LIMIT 1""",null
+            ).use{c->
+                if(c.moveToFirst())
+                    "${c.getString(0)} • ${c.getInt(1)}/${c.getInt(2).toString().padStart(2,'0')} • ${c.getInt(3)} نفر"
+                else null
+            }
+        }catch(ex:Exception){null}
+        val activity=LinearLayout(this).apply{
+            orientation=LinearLayout.HORIZONTAL
+            layoutDirection=View.LAYOUT_DIRECTION_RTL
+            gravity=android.view.Gravity.CENTER_VERTICAL
+            background=SuraUi.surface(this@MainActivity)
+            setPadding(dp(15),dp(16),dp(15),dp(16))
+            isClickable=true
+            setOnClickListener{
+                startActivity(android.content.Intent(this@MainActivity,InsuranceListActivity::class.java))
+            }
+        }
+        val info=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
+        info.addView(SuraUi.label(this,latest?:"هنوز لیستی ثبت نشده است",
+            13.5f,SuraUi.title,true))
+        info.addView(SuraUi.label(this,
+            if(latest==null)"برای آغاز، اولین لیست ماهانه را ثبت کنید."
+            else "برای مشاهده جزئیات وارد لیست‌ها شوید.",
+            11.5f,SuraUi.muted).apply{setPadding(0,dp(5),0,0)})
+        activity.addView(info,LinearLayout.LayoutParams(0,-2,1f))
+        activity.addView(SuraUi.glyph(this,"list",SuraUi.primary,24))
+        content.addView(activity)
+        val about=LinearLayout(this).apply{
+            orientation=LinearLayout.HORIZONTAL
+            layoutDirection=View.LAYOUT_DIRECTION_RTL
+            gravity=android.view.Gravity.CENTER_VERTICAL
+            background=SuraUi.surface(this@MainActivity,SuraUi.pastel,14,Color.TRANSPARENT)
+            setPadding(dp(14),dp(13),dp(14),dp(13))
+            isClickable=true
+            setOnClickListener{
+                val v=packageManager.getPackageInfo(packageName,0).versionName
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("درباره سورا")
+                    .setMessage("سورا • نسخه آزمایشی $v\n\n" +
+                        "مدیریت کارگاه‌ها، کارکنان، لیست و ریزکارکرد بیمه\n" +
+                        "خروجی PDF: گزارش داخلی\n" +
+                        "محاسبه حق بیمه و خروجی DBF هنوز تکمیل نشده‌اند.")
+                    .setPositiveButton("بستن",null).show()
+            }
+        }
+        about.addView(SuraUi.glyph(this,"shield",SuraUi.primary,22))
+        about.addView(SuraUi.label(this,"درباره سورا و وضعیت نسخه آزمایشی",
+            12f,SuraUi.primary,true).apply{setPadding(dp(10),0,0,0)})
+        content.addView(about,LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(18)})
     }
 
     private fun notice() = Toast.makeText(this,"این قابلیت هنوز آماده نیست",Toast.LENGTH_LONG).show()
