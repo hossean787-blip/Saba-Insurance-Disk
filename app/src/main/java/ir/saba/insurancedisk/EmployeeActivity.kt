@@ -131,7 +131,7 @@ class EmployeeActivity : Activity() {
             setSingleLine(true);textSize=13f;setTextColor(ink);setText(search);setSelection(search.length)
         }
         searchBox.addView(searchInput,LinearLayout.LayoutParams(0,dp(49),1f))
-        searchBox.addView(action(if(SuraUi.isCompact(this)) "" else "جست‌وجو","⌕"){render(searchInput.text.toString().trim())},LinearLayout.LayoutParams(dp(if(SuraUi.isCompact(this)) 54 else 110),dp(48)))
+        searchBox.addView(action(if(SuraUi.isCompact(this)) "" else "جست‌وجو","⌕"){render(searchInput.text.toString().trim())}.apply { contentDescription="جست‌وجوی کارکنان" },LinearLayout.LayoutParams(dp(if(SuraUi.isCompact(this)) 54 else 110),dp(48)))
         root.addView(searchBox,LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(12);bottomMargin=dp(18)})
         root.addView(label("فهرست کارکنان",17f,blue).apply {setTypeface(null,Typeface.BOLD);setPadding(0,0,0,dp(9))})
         val table=LinearLayout(this).apply {

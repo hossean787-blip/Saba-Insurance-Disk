@@ -203,7 +203,7 @@ class WorkDetailActivity : Activity() {
         searchRow.addView(action(if(SuraUi.isCompact(this)) "" else "جست‌وجو","⌕") {
             query=searchField.text.toString().trim()
             refreshRows()
-        },LinearLayout.LayoutParams(dp(if(SuraUi.isCompact(this)) 54 else 107),dp(48)))
+        }.apply { contentDescription="جست‌وجوی ریزکارکرد" },LinearLayout.LayoutParams(dp(if(SuraUi.isCompact(this)) 54 else 107),dp(48)))
         root.addView(searchRow,LinearLayout.LayoutParams(-1,-2).apply {
             bottomMargin=dp(12)
         })

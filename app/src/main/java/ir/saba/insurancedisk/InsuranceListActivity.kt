@@ -134,7 +134,7 @@ class InsuranceListActivity : Activity() {
         searchBox.addView(searchField,LinearLayout.LayoutParams(0,dp(47),1f))
         searchBox.addView(action(if(SuraUi.isCompact(this)) "" else "جست‌وجو","⌕"){
             query=searchField.text.toString().trim();refreshRows()
-        },LinearLayout.LayoutParams(dp(if(SuraUi.isCompact(this)) 54 else 105),dp(48)))
+        }.apply { contentDescription="جست‌وجوی لیست‌های ماهانه" },LinearLayout.LayoutParams(dp(if(SuraUi.isCompact(this)) 54 else 105),dp(48)))
         root.addView(searchBox,LinearLayout.LayoutParams(-1,-2).apply {
             topMargin=dp(10);bottomMargin=dp(12)
         })
