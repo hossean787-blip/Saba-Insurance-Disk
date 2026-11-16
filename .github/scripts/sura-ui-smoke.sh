@@ -138,8 +138,11 @@ adb shell settings put system font_scale 1.25
 suite large-text
 
 adb logcat -d -s AndroidRuntime:E > ui-artifacts/android-runtime-errors.txt
-if grep -q "FATAL EXCEPTION" ui-artifacts/android-runtime-errors.txt; then
+# An AOSP emulator may crash in SystemUI while the app passes navigation tests.
+# Fail only for crashes in SURA's own process, not unrelated system packages.
+if grep -Fq "Process: $PACKAGE" ui-artifacts/android-runtime-errors.txt; then
   cat ui-artifacts/android-runtime-errors.txt
+  echo "FAIL: SURA application process crashed" >&2
   exit 1
 fi
 echo "PASS: 5-tab navigation and UI headings on compact and large-text screens" > ui-artifacts/smoke-result.txt
