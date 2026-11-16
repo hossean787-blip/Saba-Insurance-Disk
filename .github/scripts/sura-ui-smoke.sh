@@ -3,13 +3,43 @@ set -euo pipefail
 mkdir -p ui-artifacts
 PACKAGE="ir.saba.insurancedisk"
 APK="app/build/outputs/apk/debug/app-debug.apk"
-adb install -r "$APK"
+# CI emulators can report boot-completed before package verification and UI services settle.
+# Keep the verification checks strict while making infrastructure readiness deterministic.
+adb wait-for-device
+for attempt in $(seq 1 45); do
+  if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
+    break
+  fi
+  sleep 2
+done
+adb shell input keyevent KEYCODE_WAKEUP || true
+adb shell input keyevent 82 || true
+adb shell settings put global verifier_verify_adb_installs 0 || true
+adb shell settings put global package_verifier_enable 0 || true
+adb shell settings put secure package_verifier_user_consent -1 || true
+sleep 5
+installed=0
+for attempt in 1 2 3; do
+  if adb install --no-streaming -r "$APK"; then
+    installed=1
+    break
+  fi
+  echo "APK install attempt $attempt failed; retrying after package service recovery" >&2
+  sleep 8
+done
+if [ "$installed" -ne 1 ]; then
+  adb shell dumpsys package verifier > ui-artifacts/package-verifier-diagnostics.txt 2>&1 || true
+  echo "FAIL: App install failed after three attempts" >&2
+  exit 1
+fi
+adb shell pm path "$PACKAGE" | grep -q '^package:'
 
 # Assertions test the screen itself, not merely the tap response.
 verify_screen() {
   local expected="$1"
   local attempts=0
-  while [ "$attempts" -lt 12 ]; do
+  while [ "$attempts" -lt 25 ]; do
+    rm -f /tmp/sura-window.xml
     adb shell uiautomator dump /sdcard/sura-window.xml >/dev/null 2>&1 || true
     adb pull /sdcard/sura-window.xml /tmp/sura-window.xml >/dev/null 2>&1 || true
     if python3 - "$expected" <<'PY'
@@ -26,9 +56,26 @@ PY
       return 0
     fi
     attempts=$((attempts+1))
-    sleep 1
+    sleep 2
   done
   echo "FAIL: Expected screen not visible: $expected" >&2
+  cp /tmp/sura-window.xml ui-artifacts/failed-screen-hierarchy.xml 2>/dev/null || true
+  adb exec-out screencap -p > ui-artifacts/failed-screen.png 2>/dev/null || true
+  adb shell dumpsys activity activities > ui-artifacts/failed-activity-state.txt 2>&1 || true
+  adb logcat -d -s AndroidRuntime:E ActivityManager:E > ui-artifacts/failed-android-log.txt 2>&1 || true
+  python3 - <<'PY' || true
+from pathlib import Path
+import xml.etree.ElementTree as ET
+p=Path("ui-artifacts/failed-screen-hierarchy.xml")
+if p.exists():
+    try:
+        root=ET.parse(p).getroot()
+        print("Visible UI texts:",[n.attrib.get("text") for n in root.iter("node") if n.attrib.get("text")][:30])
+    except Exception as e:
+        print("UI hierarchy parse error:",e)
+else:
+    print("No UI hierarchy could be retrieved")
+PY
   adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' || true
   return 1
 }
@@ -63,7 +110,10 @@ PY
 suite() {
   local suffix="$1"
   adb shell am force-stop "$PACKAGE" || true
+  adb shell input keyevent KEYCODE_WAKEUP || true
+  adb shell input keyevent 82 || true
   adb shell am start -W -n "$PACKAGE/.MainActivity"
+  sleep 4
   verify_screen "سورا"
   adb shell screencap -p "/sdcard/$suffix-home.png"
   adb pull "/sdcard/$suffix-home.png" "ui-artifacts/$suffix-01-home.png" >/dev/null
