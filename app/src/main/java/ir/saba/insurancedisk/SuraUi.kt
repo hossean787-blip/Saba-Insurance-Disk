@@ -45,13 +45,14 @@ internal object SuraUi {
 
     /** Narrow screens show full-width Persian fields instead of squeezed columns. */
     fun isCompact(activity:Activity):Boolean =
-        activity.resources.configuration.screenWidthDp < 360
+        activity.resources.configuration.screenWidthDp < 400
 
     /** Native visual touch response without replacing existing click listeners. */
     fun touch(activity:Activity,target:View,corner:Int=13) {
         target.isClickable=true
         target.isFocusable=true
         target.minimumHeight=dp(activity,48)
+        target.isSoundEffectsEnabled=true
         target.foreground=RippleDrawable(
             ColorStateList.valueOf(Color.argb(46,57,68,188)),null,
             surface(activity,Color.WHITE,corner,Color.TRANSPARENT)
@@ -157,6 +158,9 @@ internal object SuraUi {
             setBackgroundColor(canvas)
         }
         shell.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+        scroll.isVerticalScrollBarEnabled=false
+        scroll.clipToPadding=false
+        scroll.isFillViewport=true
         val navigation=bottom(activity,current)
         shell.addView(navigation,LinearLayout.LayoutParams(-1,dp(activity,72)))
         activity.window.setSoftInputMode(
@@ -189,6 +193,8 @@ internal object SuraUi {
             }
         }
         activity.window.navigationBarColor=Color.WHITE
+        if(android.os.Build.VERSION.SDK_INT>=29)
+            activity.window.isNavigationBarContrastEnforced=false
         activity.window.statusBarColor=charcoal
         activity.window.decorView.systemUiVisibility =
             activity.window.decorView.systemUiVisibility or
@@ -229,6 +235,7 @@ internal object SuraUi {
                 if(android.os.Build.VERSION.SDK_INT>=30)
                     stateDescription=if(active)"انتخاب‌شده" else "انتخاب‌نشده"
                 touch(activity,this,14)
+                minimumWidth=dp(activity,48)
                 setOnClickListener {
                     if(activity.javaClass==tab.target)return@setOnClickListener
                     val intent=Intent(activity,tab.target)
@@ -247,10 +254,11 @@ internal object SuraUi {
                     13,Color.TRANSPARENT)
             }
             bubble.addView(glyph(activity,tab.symbol,if(active)primary else muted,21))
-            wrapper.addView(bubble,LinearLayout.LayoutParams(dp(activity,52),dp(activity,34)))
+            wrapper.addView(bubble,LinearLayout.LayoutParams(dp(activity,48),dp(activity,34)))
             wrapper.addView(label(activity,tab.name,10.5f,
                 if(active)primary else muted,active).apply{
                 gravity=Gravity.CENTER
+                importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 maxLines=1
                 ellipsize=android.text.TextUtils.TruncateAt.END
                 setAutoSizeTextTypeUniformWithConfiguration(

@@ -73,7 +73,7 @@ open class InsuranceReportActivity : Activity() {
 
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor=Color.rgb(5,39,88)
+        window.statusBarColor=SuraUi.charcoal
         savedInstanceState?.getString("lastUri")?.let {
             lastSavedUri=Uri.parse(it)
         }

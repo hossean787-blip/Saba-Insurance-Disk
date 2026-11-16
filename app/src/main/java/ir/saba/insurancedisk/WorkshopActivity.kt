@@ -30,7 +30,7 @@ class WorkshopActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = Color.rgb(5, 39, 88)
+        window.statusBarColor = SuraUi.charcoal
         store = MainActivity.Store(this)
         render()
     }
@@ -165,7 +165,7 @@ class WorkshopActivity : Activity() {
         fun tableRow(columns:List<String>, header:Boolean, id:Long?=null, index:Int=0) {
             val row=LinearLayout(this).apply {
                 orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL; gravity=Gravity.CENTER_VERTICAL
-                background=shape(if(header) blue else if(index%2==0) Color.WHITE else Color.rgb(235,244,255),6)
+                background=shape(if(header) blue else if(index%2==0) Color.WHITE else SuraUi.pastel,6)
                 if(id!=null) {
                     SuraUi.touch(this@WorkshopActivity,this,6)
                     setOnClickListener { load(id) }

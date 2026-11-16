@@ -83,7 +83,7 @@ class InsuranceListActivity : Activity() {
         }
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor=Color.rgb(5,39,88)
+        window.statusBarColor=SuraUi.charcoal
         workshops=mutableListOf<Workshop>().also { all ->
             store.readableDatabase.rawQuery(
                 "SELECT id,name,code FROM workshops ORDER BY name,code",null

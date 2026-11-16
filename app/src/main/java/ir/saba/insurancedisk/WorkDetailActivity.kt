@@ -114,7 +114,7 @@ class WorkDetailActivity : Activity() {
 
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor=Color.rgb(5,39,88)
+        window.statusBarColor=SuraUi.charcoal
         loadLists()
         render()
     }

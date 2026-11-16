@@ -28,7 +28,7 @@ class EmployeeActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor=Color.rgb(5,39,88)
+        window.statusBarColor=SuraUi.charcoal
         store=MainActivity.Store(this)
         render()
     }
@@ -155,7 +155,7 @@ class EmployeeActivity : Activity() {
                 if(assigned=="بدون کارگاه")unassigned++
                 val card=LinearLayout(this).apply {
                     orientation=LinearLayout.VERTICAL
-                    background=shape(if(count%2==0)Color.WHITE else Color.rgb(235,244,255),10,Color.rgb(214,228,245))
+                    background=shape(if(count%2==0)Color.WHITE else SuraUi.pastel,10,SuraUi.line)
                     setPadding(dp(12),dp(11),dp(12),dp(11))
                     SuraUi.touch(this@EmployeeActivity,this,10)
                     contentDescription="انتخاب کارمند: ${c.getString(4)} ${c.getString(3)}"
