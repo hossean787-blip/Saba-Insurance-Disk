@@ -4,9 +4,16 @@ on:
   push:
     paths:
       - '.github/workflows/sura-ui-smoke.yml'
-
+      - '.github/scripts/sura-ui-smoke.sh'
+      - 'app/src/main/java/ir/saba/insurancedisk/**'
+      - 'app/src/main/res/**'
+      - 'app/src/main/AndroidManifest.xml'
 jobs:
   ui-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [28, 35]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -37,20 +44,20 @@ jobs:
           gradle-version: '8.9'
       - name: Build debug app
         run: gradle --no-daemon :app:assembleDebug
-      - name: Run emulator and capture screens
+      - name: Run emulator and assert screen navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 28
+          api-level: ${{ matrix.api }}
           target: default
           arch: x86_64
           profile: pixel_2
           disable-animations: false
           emulator-options: -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -memory 1536
           script: bash .github/scripts/sura-ui-smoke.sh
-      - name: Upload UI screenshots and diagnostics
+      - name: Upload screenshots and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SURA-UI-v0.6.0-screenshots
+          name: SURA-UI-${{ matrix.api }}-screenshots
           path: ui-artifacts/
           if-no-files-found: warn
