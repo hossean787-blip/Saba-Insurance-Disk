@@ -200,10 +200,10 @@ class WorkDetailActivity : Activity() {
             setHintTextColor(muted)
         }
         searchRow.addView(searchField,LinearLayout.LayoutParams(0,dp(47),1f))
-        searchRow.addView(action("جست‌وجو","⌕") {
+        searchRow.addView(action(if(SuraUi.isCompact(this)) "" else "جست‌وجو","⌕") {
             query=searchField.text.toString().trim()
             refreshRows()
-        },LinearLayout.LayoutParams(dp(107),dp(43)))
+        },LinearLayout.LayoutParams(dp(if(SuraUi.isCompact(this)) 54 else 107),dp(48)))
         root.addView(searchRow,LinearLayout.LayoutParams(-1,-2).apply {
             bottomMargin=dp(12)
         })

@@ -144,8 +144,8 @@ class WorkshopActivity : Activity() {
             setText(search); setSelection(search.length)
         }
         searchBox.addView(searchInput,LinearLayout.LayoutParams(0,dp(49),1f))
-        searchBox.addView(button("جست‌وجو","⌕",blue) { render(searchInput.text.toString().trim()) },
-            LinearLayout.LayoutParams(dp(110),dp(43)))
+        searchBox.addView(button(if(SuraUi.isCompact(this)) "" else "جست‌وجو","⌕",blue) { render(searchInput.text.toString().trim()) },
+            LinearLayout.LayoutParams(dp(if(SuraUi.isCompact(this)) 54 else 110),dp(48)))
         root.addView(searchBox,LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(12);bottomMargin=dp(18) })
 
         root.addView(label("فهرست کارگاه‌ها",17f,blue).apply {
