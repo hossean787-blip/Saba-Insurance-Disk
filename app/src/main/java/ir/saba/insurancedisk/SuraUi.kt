@@ -2,6 +2,11 @@ package ir.saba.insurancedisk
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Rect
+import android.graphics.drawable.RippleDrawable
+import android.provider.Settings
+import android.view.animation.DecelerateInterpolator
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -37,6 +42,41 @@ internal object SuraUi {
 
     fun dp(activity:Activity,value:Int):Int =
         (value*activity.resources.displayMetrics.density+0.5f).toInt()
+
+    /** Narrow screens show full-width Persian fields instead of squeezed columns. */
+    fun isCompact(activity:Activity):Boolean =
+        activity.resources.configuration.screenWidthDp < 360
+
+    /** Native visual touch response without replacing existing click listeners. */
+    fun touch(activity:Activity,target:View,corner:Int=13) {
+        target.isClickable=true
+        target.isFocusable=true
+        target.minHeight=dp(activity,48)
+        target.foreground=RippleDrawable(
+            ColorStateList.valueOf(Color.argb(46,57,68,188)),null,
+            surface(activity,Color.WHITE,corner,Color.TRANSPARENT)
+        )
+    }
+
+    private fun animationsEnabled(activity:Activity):Boolean = try {
+        Settings.Global.getFloat(
+            activity.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f
+        )>0f
+    }catch(_:Exception){true}
+
+    /** Honor disabled system animations and do not delay screen navigation. */
+    fun animateEntrance(activity:Activity,target:View) {
+        if(!animationsEnabled(activity))return
+        target.alpha=0f
+        target.translationY=dp(activity,10).toFloat()
+        target.post {
+            if(target.isAttachedToWindow)target.animate()
+                .alpha(1f).translationY(0f)
+                .setDuration(210L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+    }
 
     fun surface(activity:Activity,color:Int=white,radius:Int=18,stroke:Int=line):GradientDrawable =
         GradientDrawable().apply {
@@ -78,6 +118,7 @@ internal object SuraUi {
             background=gradient(activity,21)
             elevation=dp(activity,4).toFloat()
         }
+        animateEntrance(activity,outer)
         val text=LinearLayout(activity).apply {
             orientation=LinearLayout.VERTICAL
             layoutDirection=View.LAYOUT_DIRECTION_RTL
