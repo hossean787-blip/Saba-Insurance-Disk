@@ -66,6 +66,7 @@ open class InsuranceReportActivity : Activity() {
             setTypeface(null,Typeface.BOLD)
             background=shape(Color.WHITE,12,outline)
             elevation=dp(2).toFloat()
+            SuraUi.touch(this@InsuranceReportActivity,this)
             setOnClickListener{run()}
         }
     private fun notice(message:String)=Toast.makeText(this,message,Toast.LENGTH_LONG).show()

@@ -43,7 +43,9 @@ class EmployeeActivity : Activity() {
     private fun action(t:String,symbol:String,fn:()->Unit)=label("$symbol  $t",14f,blue).apply {
         gravity=Gravity.CENTER;setTypeface(null,Typeface.BOLD)
         background=shape(Color.WHITE,13,SuraUi.line)
-        elevation=dp(2).toFloat();setOnClickListener{fn()}
+        elevation=dp(2).toFloat()
+        SuraUi.touch(this@EmployeeActivity,this)
+        setOnClickListener{fn()}
     }
     private fun toolbar(items:List<Triple<String,String,()->Unit>>) {
         val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL }
@@ -73,8 +75,14 @@ class EmployeeActivity : Activity() {
         val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL }
         val right=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         val left=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        row.addView(right,LinearLayout.LayoutParams(0,-2,1f).apply { leftMargin=dp(5) })
-        row.addView(left,LinearLayout.LayoutParams(0,-2,1f).apply { rightMargin=dp(5) })
+        if(SuraUi.isCompact(this)) {
+            row.orientation=LinearLayout.VERTICAL
+            row.addView(right,LinearLayout.LayoutParams(-1,-2))
+            row.addView(left,LinearLayout.LayoutParams(-1,-2))
+        }else{
+            row.addView(right,LinearLayout.LayoutParams(0,-2,1f).apply{leftMargin=dp(5)})
+            row.addView(left,LinearLayout.LayoutParams(0,-2,1f).apply{rightMargin=dp(5)})
+        }
         root.addView(row)
         field(right,a,at,an,readonly);field(left,b,bt,bn)
     }
@@ -148,7 +156,9 @@ class EmployeeActivity : Activity() {
                 val card=LinearLayout(this).apply {
                     orientation=LinearLayout.VERTICAL
                     background=shape(if(count%2==0)Color.WHITE else Color.rgb(235,244,255),10,Color.rgb(214,228,245))
-                    setPadding(dp(12),dp(9),dp(12),dp(9))
+                    setPadding(dp(12),dp(11),dp(12),dp(11))
+                    SuraUi.touch(this@EmployeeActivity,this,10)
+                    contentDescription="انتخاب کارمند: ${c.getString(4)} ${c.getString(3)}"
                     setOnClickListener { load(id) }
                 }
                 card.addView(label("${c.getString(4)} ${c.getString(3)}  •  ${c.getString(2)}",15f,blue).apply {

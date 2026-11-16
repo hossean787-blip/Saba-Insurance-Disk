@@ -54,6 +54,7 @@ class WorkshopActivity : Activity() {
             setTypeface(null,Typeface.BOLD)
             background=shape(Color.WHITE,13,SuraUi.line)
             elevation=dp(2).toFloat()
+            SuraUi.touch(this@WorkshopActivity,this)
             setOnClickListener { action() }
         }
 
@@ -89,8 +90,14 @@ class WorkshopActivity : Activity() {
         val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL }
         val right=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         val left=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        row.addView(right,LinearLayout.LayoutParams(0,-2,1f).apply { leftMargin=dp(5) })
-        row.addView(left,LinearLayout.LayoutParams(0,-2,1f).apply { rightMargin=dp(5) })
+        if(SuraUi.isCompact(this)) {
+            row.orientation=LinearLayout.VERTICAL
+            row.addView(right,LinearLayout.LayoutParams(-1,-2))
+            row.addView(left,LinearLayout.LayoutParams(-1,-2))
+        }else{
+            row.addView(right,LinearLayout.LayoutParams(0,-2,1f).apply{leftMargin=dp(5)})
+            row.addView(left,LinearLayout.LayoutParams(0,-2,1f).apply{rightMargin=dp(5)})
+        }
         root.addView(row)
         return field(right,firstTitle,numeric=firstNumeric) to field(left,secondTitle,numeric=secondNumeric)
     }
@@ -144,19 +151,36 @@ class WorkshopActivity : Activity() {
         root.addView(label("فهرست کارگاه‌ها",17f,blue).apply {
             setTypeface(null,Typeface.BOLD); setPadding(0,0,0,dp(9))
         })
-        val table=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; background=shape(Color.WHITE,13,SuraUi.line); setPadding(dp(4),dp(4),dp(4),dp(4)) }
+        val table=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL
+            background=shape(Color.WHITE,13,SuraUi.line)
+            setPadding(dp(4),dp(4),dp(4),dp(4))
+        }
+        val tableScroll=HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled=true
+            background=shape(Color.WHITE,13,SuraUi.line)
+            fillViewport=true
+        }
+        tableScroll.addView(table,LinearLayout.LayoutParams(-2,-2))
         fun tableRow(columns:List<String>, header:Boolean, id:Long?=null, index:Int=0) {
             val row=LinearLayout(this).apply {
                 orientation=LinearLayout.HORIZONTAL; layoutDirection=View.LAYOUT_DIRECTION_RTL; gravity=Gravity.CENTER_VERTICAL
                 background=shape(if(header) blue else if(index%2==0) Color.WHITE else Color.rgb(235,244,255),6)
-                if(id!=null) setOnClickListener { load(id) }
+                if(id!=null) {
+                    SuraUi.touch(this@WorkshopActivity,this,6)
+                    setOnClickListener { load(id) }
+                }
             }
             columns.forEachIndexed { columnIndex, value ->
                 val cell=label(value,if(header) 12f else 12.5f,if(header) Color.WHITE else ink).apply {
-                    gravity=Gravity.CENTER; setPadding(dp(3),dp(12),dp(3),dp(12))
+                    gravity=Gravity.CENTER
+                    maxLines=2
+                    ellipsize=android.text.TextUtils.TruncateAt.END
+                    setPadding(dp(6),dp(13),dp(6),dp(13))
                     if(header) setTypeface(null,Typeface.BOLD)
                 }
-                row.addView(cell,LinearLayout.LayoutParams(0,-2,if(columnIndex==2) 1.7f else 1f))
+                val widths=listOf(115,95,187,178)
+                row.addView(cell,LinearLayout.LayoutParams(dp(widths[columnIndex]),dp(57)))
             }
             table.addView(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(2) })
         }
@@ -178,7 +202,11 @@ class WorkshopActivity : Activity() {
         if(count==0) table.addView(label("کارگاهی برای نمایش وجود ندارد.",13f,muted).apply {
             gravity=Gravity.CENTER;setPadding(dp(8),dp(16),dp(8),dp(16))
         })
-        root.addView(table,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(18) })
+        root.addView(tableScroll,LinearLayout.LayoutParams(-1,-2).apply {
+            bottomMargin=dp(7)
+        })
+        root.addView(label("برای دیدن همه ستون‌ها، جدول را افقی حرکت دهید.",12f,muted)
+            .apply{setPadding(dp(5),0,dp(5),dp(12))})
         root.addView(label("اطلاعات کارگاه",17f,blue).apply {
             setTypeface(null,Typeface.BOLD); setPadding(0,0,0,dp(10))
         })

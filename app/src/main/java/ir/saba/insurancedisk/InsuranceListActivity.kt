@@ -58,6 +58,7 @@ class InsuranceListActivity : Activity() {
         label("$symbol  $caption",13.5f,blue).apply {
             gravity=Gravity.CENTER;setTypeface(null,Typeface.BOLD)
             background=bg(Color.WHITE,12,border);elevation=dp(2).toFloat()
+            SuraUi.touch(this@InsuranceListActivity,this)
             setOnClickListener{run()}
         }
     private fun toolbar(vararg items:Triple<String,String,()->Unit>) {
@@ -186,9 +187,18 @@ class InsuranceListActivity : Activity() {
             framed("سال *",yearField),
             framed("ماه *",monthField),
             framed("شماره لیست",numberField)
-        ).forEach { fieldsRow.addView(it,LinearLayout.LayoutParams(0,-2,1f).apply {
-            leftMargin=dp(3);rightMargin=dp(3)
-        }) }
+        ).forEach {
+            if(SuraUi.isCompact(this)) {
+                fieldsRow.orientation=LinearLayout.VERTICAL
+                fieldsRow.addView(it,LinearLayout.LayoutParams(-1,-2).apply {
+                    bottomMargin=dp(8)
+                })
+            }else {
+                fieldsRow.addView(it,LinearLayout.LayoutParams(0,-2,1f).apply {
+                    leftMargin=dp(3);rightMargin=dp(3)
+                })
+            }
+        }
         editor.addView(fieldsRow)
         root.addView(editor,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(12)})
 

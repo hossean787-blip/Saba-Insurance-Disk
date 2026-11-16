@@ -75,6 +75,7 @@ class WorkDetailActivity : Activity() {
             setTypeface(null,Typeface.BOLD)
             background=shape(Color.WHITE,12,border)
             elevation=dp(2).toFloat()
+            SuraUi.touch(this@WorkDetailActivity,this)
             setOnClickListener { callback() }
         }
     private fun toolbar(vararg actions:Triple<String,String,()->Unit>) {
@@ -251,9 +252,16 @@ class WorkDetailActivity : Activity() {
             frame("روزهای کارکرد *",daysField),
             frame("مزد روزانه *",wageField)
         ).forEach { frame ->
-            formRow.addView(frame,LinearLayout.LayoutParams(0,-2,1f).apply {
-                leftMargin=dp(3);rightMargin=dp(3)
-            })
+            if(SuraUi.isCompact(this)) {
+                formRow.orientation=LinearLayout.VERTICAL
+                formRow.addView(frame,LinearLayout.LayoutParams(-1,-2).apply {
+                    bottomMargin=dp(8)
+                })
+            }else{
+                formRow.addView(frame,LinearLayout.LayoutParams(0,-2,1f).apply {
+                    leftMargin=dp(3);rightMargin=dp(3)
+                })
+            }
         }
         editor.addView(formRow,LinearLayout.LayoutParams(-1,-2).apply {
             bottomMargin=dp(10)
@@ -500,6 +508,7 @@ class WorkDetailActivity : Activity() {
             val widths=listOf(148,105,65,132,132,147)
             columns.forEachIndexed { n,value->addView(cell(value,widths[n],header)) }
             if(callback!=null){
+                SuraUi.touch(this@WorkDetailActivity,this,7)
                 setOnClickListener{callback()}
                 isFocusable=true
                 contentDescription="انتخاب کارکرد ${columns.joinToString("، ")}"

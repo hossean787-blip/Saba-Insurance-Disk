@@ -148,6 +148,8 @@ class MainActivity : Activity() {
         cta.addView(SuraUi.glyph(this,"list",SuraUi.primary,20))
         cta.addView(SuraUi.label(this,"مدیریت لیست ماهانه",
             14f,SuraUi.primary,true).apply{setPadding(dp(9),0,0,0)})
+        SuraUi.touch(this,cta,13)
+        SuraUi.animateEntrance(this,hero)
         hero.addView(cta,LinearLayout.LayoutParams(-1,dp(48)))
         content.addView(hero,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(15)})
 
@@ -189,12 +191,18 @@ class MainActivity : Activity() {
                 orientation=LinearLayout.HORIZONTAL
                 layoutDirection=View.LAYOUT_DIRECTION_RTL
             }
-            row.addView(right,LinearLayout.LayoutParams(0,if(height==0)-2 else dp(height),1f).apply{
-                leftMargin=dp(5)
-            })
-            row.addView(left,LinearLayout.LayoutParams(0,if(height==0)-2 else dp(height),1f).apply{
-                rightMargin=dp(5)
-            })
+            if(SuraUi.isCompact(this)) {
+                row.orientation=LinearLayout.VERTICAL
+                row.addView(right,LinearLayout.LayoutParams(-1,
+                    if(height==0)-2 else dp(height)).apply{bottomMargin=dp(9)})
+                row.addView(left,LinearLayout.LayoutParams(-1,
+                    if(height==0)-2 else dp(height)))
+            } else {
+                row.addView(right,LinearLayout.LayoutParams(0,
+                    if(height==0)-2 else dp(height),1f).apply{leftMargin=dp(5)})
+                row.addView(left,LinearLayout.LayoutParams(0,
+                    if(height==0)-2 else dp(height),1f).apply{rightMargin=dp(5)})
+            }
             content.addView(row,LinearLayout.LayoutParams(-1,-2).apply{
                 bottomMargin=dp(10)
             })
@@ -216,6 +224,7 @@ class MainActivity : Activity() {
                 background=SuraUi.surface(this@MainActivity)
                 elevation=dp(2).toFloat()
                 isClickable=true;isFocusable=true
+                SuraUi.touch(this@MainActivity,this,18)
                 setOnClickListener{
                     val next=android.content.Intent(this@MainActivity,target)
                     if(pdf)next.putExtra("pdf",true)
