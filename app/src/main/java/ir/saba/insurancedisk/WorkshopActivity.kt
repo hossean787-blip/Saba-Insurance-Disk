@@ -159,7 +159,7 @@ class WorkshopActivity : Activity() {
         val tableScroll=HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled=true
             background=shape(Color.WHITE,13,SuraUi.line)
-            fillViewport=true
+            isFillViewport=true
         }
         tableScroll.addView(table,LinearLayout.LayoutParams(-2,-2))
         fun tableRow(columns:List<String>, header:Boolean, id:Long?=null, index:Int=0) {
