@@ -51,7 +51,7 @@ internal object SuraUi {
     fun touch(activity:Activity,target:View,corner:Int=13) {
         target.isClickable=true
         target.isFocusable=true
-        target.minHeight=dp(activity,48)
+        target.minimumHeight=dp(activity,48)
         target.foreground=RippleDrawable(
             ColorStateList.valueOf(Color.argb(46,57,68,188)),null,
             surface(activity,Color.WHITE,corner,Color.TRANSPARENT)
