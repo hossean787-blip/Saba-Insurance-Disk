@@ -157,19 +157,42 @@ internal object SuraUi {
             setBackgroundColor(canvas)
         }
         shell.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
-        shell.addView(bottom(activity,current),LinearLayout.LayoutParams(-1,dp(activity,70)))
-        // Allow the Android navigation bar to sit below rather than over our tabs.
+        val navigation=bottom(activity,current)
+        shell.addView(navigation,LinearLayout.LayoutParams(-1,dp(activity,72)))
+        activity.window.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
+        // Centralized insets prevent a double navigation-bar gap.
+        scroll.setOnApplyWindowInsetsListener { view,insets ->
+            val top=if(android.os.Build.VERSION.SDK_INT>=30)
+                insets.getInsets(WindowInsets.Type.statusBars()).top
+                else insets.systemWindowInsetTop
+            view.setPadding(0,top,0,dp(activity,12))
+            insets
+        }
         shell.setOnApplyWindowInsetsListener { view,insets ->
             val bottom=if(android.os.Build.VERSION.SDK_INT>=30)
                 insets.getInsets(WindowInsets.Type.navigationBars()).bottom
                 else insets.systemWindowInsetBottom
+            if(android.os.Build.VERSION.SDK_INT>=30)
+                navigation.visibility=if(insets.isVisible(WindowInsets.Type.ime()))
+                    View.GONE else View.VISIBLE
             view.setPadding(0,0,0,bottom)
             insets
+        }
+        if(android.os.Build.VERSION.SDK_INT<30) {
+            shell.viewTreeObserver.addOnGlobalLayoutListener {
+                val rect=Rect()
+                shell.getWindowVisibleDisplayFrame(rect)
+                val covered=activity.resources.displayMetrics.heightPixels-rect.bottom
+                navigation.visibility=if(covered>dp(activity,180))View.GONE else View.VISIBLE
+            }
         }
         activity.window.navigationBarColor=Color.WHITE
         activity.window.statusBarColor=charcoal
         activity.window.decorView.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            activity.window.decorView.systemUiVisibility or
+                View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         return shell
     }
 
@@ -203,13 +226,17 @@ internal object SuraUi {
                 isFocusable=true
                 setPadding(dp(activity,2),dp(activity,3),dp(activity,2),dp(activity,3))
                 contentDescription=tab.name
+                if(android.os.Build.VERSION.SDK_INT>=30)
+                    stateDescription=if(active)"انتخاب‌شده" else "انتخاب‌نشده"
+                touch(activity,this,14)
                 setOnClickListener {
                     if(activity.javaClass==tab.target)return@setOnClickListener
                     val intent=Intent(activity,tab.target)
                     if(tab.key=="home")intent.addFlags(
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     )
-                    else intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    else if(tab.key!="reports")
+                        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                     if(tab.key=="reports")intent.putExtra("pdf",true)
                     activity.startActivity(intent)
                 }
@@ -224,6 +251,11 @@ internal object SuraUi {
             wrapper.addView(label(activity,tab.name,10.5f,
                 if(active)primary else muted,active).apply{
                 gravity=Gravity.CENTER
+                maxLines=1
+                ellipsize=android.text.TextUtils.TruncateAt.END
+                setAutoSizeTextTypeUniformWithConfiguration(
+                    9,11,1,android.util.TypedValue.COMPLEX_UNIT_SP
+                )
                 setPadding(0,dp(activity,3),0,0)
             })
             bar.addView(wrapper,LinearLayout.LayoutParams(0,-1,1f))
