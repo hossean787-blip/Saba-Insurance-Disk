@@ -199,12 +199,14 @@ class WorkshopActivity : Activity() {
                 count++
             }
         }
-        if(count==0) table.addView(label("کارگاهی برای نمایش وجود ندارد.",13f,muted).apply {
-            gravity=Gravity.CENTER;setPadding(dp(8),dp(16),dp(8),dp(16))
-        })
         root.addView(tableScroll,LinearLayout.LayoutParams(-1,-2).apply {
             bottomMargin=dp(7)
         })
+        if(count==0)root.addView(label("هنوز کارگاهی برای نمایش ثبت نشده است.",13f,muted).apply{
+            gravity=Gravity.CENTER
+            background=shape(Color.WHITE,12,SuraUi.line)
+            setPadding(dp(12),dp(18),dp(12),dp(18))
+        },LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(9)})
         root.addView(label("برای دیدن همه ستون‌ها، جدول را افقی حرکت دهید.",12f,muted)
             .apply{setPadding(dp(5),0,dp(5),dp(12))})
         root.addView(label("اطلاعات کارگاه",17f,blue).apply {
