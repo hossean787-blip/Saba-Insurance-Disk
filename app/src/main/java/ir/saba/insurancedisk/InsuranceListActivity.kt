@@ -558,6 +558,32 @@ class InsuranceListActivity : Activity() {
             msg("کارگاه، سال دو رقمی و ماه را به‌درستی مشخص کنید");return
         }
         val year=1400+shortYear
+        val insuredRate=MonthlyInsuranceRules.rateBps(insuredRateField.text.toString())
+        val employerRate=MonthlyInsuranceRules.rateBps(employerRateField.text.toString())
+        val unemploymentRate=MonthlyInsuranceRules.rateBps(unemploymentRateField.text.toString())
+        val relief=WorkDetailRules.parseNonnegative(employerReliefField.text.toString())
+        val reference=employerReliefReference.text.toString().trim()
+        if(insuredRate==null || employerRate==null || unemploymentRate==null ||
+            !MonthlyInsuranceRules.validateRates(insuredRate,employerRate,unemploymentRate)){
+            msg("نرخ‌های سهم بیمه را به‌صورت درصد معتبر ثبت کنید");return
+        }
+        val ordinary=InsurancePremiumMath.isOrdinaryRate(workshop.rate)
+        if(ordinary && Triple(insuredRate,employerRate,unemploymentRate)!=Triple(700,2000,300)){
+            msg("نرخ کارگاه عادی باید ۷٪ بیمه‌شده، ۲۰٪ کارفرما و ۳٪ بیکاری باشد")
+            return
+        }
+        if(!ordinary){
+            val expectedRate=MonthlyInsuranceRules.rateBps(workshop.rate.toString())
+            if(!specialRatesConfirmed.isChecked || expectedRate==null ||
+                insuredRate+employerRate+unemploymentRate!=expectedRate){
+                msg("برای نرخ اختصاصی، تأیید مستند و مجموع نرخ برابر نرخ کارگاه الزامی است")
+                return
+            }
+        }
+        if(relief==null || (relief>0L && reference.isEmpty())){
+            msg("مبلغ معافیت نامعتبر است یا شماره تأییدیه وارد نشده است")
+            return
+        }
         val db=store.writableDatabase
         if(!db.rawQuery("SELECT 1 FROM workshops WHERE id=?",
             arrayOf(workshop.id.toString())).use{it.moveToFirst()}){
@@ -570,13 +596,29 @@ class InsuranceListActivity : Activity() {
             msg("برای این کارگاه و ماه قبلاً لیست ثبت شده است");return
         }
         val oldId=selectedId
-        if(oldId!=null && db.rawQuery(
-            """SELECT 1 FROM insurance_list_items i JOIN insurance_lists l ON l.id=i.list_id
-                WHERE i.list_id=? AND l.workshop_id<>? LIMIT 1""",
-            arrayOf(oldId.toString(),workshop.id.toString())
+        val oldWorkshopId=if(oldId==null)null else db.rawQuery(
+            "SELECT workshop_id FROM insurance_lists WHERE id=?",
+            arrayOf(oldId.toString())
+        ).use{c->if(c.moveToFirst())c.getLong(0) else null}
+        if(oldId!=null && oldWorkshopId!=workshop.id && db.rawQuery(
+            "SELECT 1 FROM insurance_list_items WHERE list_id=? LIMIT 1",
+            arrayOf(oldId.toString())
         ).use{it.moveToFirst()}){
-            msg("این لیست ریزکارکرد دارد؛ برای حفاظت از سوابق نمی‌توان کارگاه را تغییر داد")
+            msg("این لیست ریزکارکرد دارد و تغییر کارگاه آن مجاز نیست")
             return
+        }
+        if(relief>0L){
+            if(oldId==null || MonthlyInsuranceRules.minimumDailyWage(year)==null){
+                msg("برای معافیت ابتدا ریزکارکرد و دوره قابل محاسبه ثبت کنید")
+                return
+            }
+            try{
+                MonthlyInsuranceRules.calculate(year,month,loadMonthlyEntries(oldId),
+                    insuredRate,employerRate,unemploymentRate,relief,reference)
+            }catch(ex:Exception){
+                msg(ex.message ?: "مبلغ معافیت با سهم کارفرما سازگار نیست")
+                return
+            }
         }
         var saved:Long?=null
         try{
@@ -584,6 +626,12 @@ class InsuranceListActivity : Activity() {
             try{
                 val values=ContentValues().apply {
                     put("workshop_id",workshop.id);put("year",year);put("month",month)
+                    put("insured_rate_bps",insuredRate)
+                    put("employer_rate_bps",employerRate)
+                    put("unemployment_rate_bps",unemploymentRate)
+                    put("rates_confirmed",if(specialRatesConfirmed.isChecked)1 else 0)
+                    put("employer_relief_amount",relief)
+                    put("employer_relief_reference",reference)
                 }
                 saved=if(oldId==null){
                     val next=db.rawQuery(
