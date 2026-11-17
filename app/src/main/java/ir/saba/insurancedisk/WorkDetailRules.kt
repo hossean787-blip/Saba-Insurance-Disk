@@ -3,6 +3,15 @@ package ir.saba.insurancedisk
 /** Amount parsing and arithmetic independent from Android, for repeatable JVM testing. */
 internal object WorkDetailRules {
     data class Calculation(val days:Int,val dailyWage:Long,val benefits:Long,val total:Long)
+    data class ExtendedCalculation(
+        val days:Int,val dailyWage:Long,val benefits:Long,
+        val seniorityDaily:Long,val maritalAllowance:Long,
+        val nonSubjectBenefits:Long,val subjectTotal:Long,val grossTotal:Long
+    ){
+        val seniorityMonthly:Long get()=Math.multiplyExact(days.toLong(),seniorityDaily)
+        val subjectAllowances:Long get()=Math.addExact(
+            Math.addExact(benefits,seniorityMonthly),maritalAllowance)
+    }
 
     fun <T> fromPlaceholder(items:List<T>,selectedIndex:Int):T? =
         if(selectedIndex<=0)null else items.getOrNull(selectedIndex-1)
@@ -28,6 +37,24 @@ internal object WorkDetailRules {
         in 1..6 -> 31
         in 7..12 -> 30
         else -> 0
+    }
+
+    fun calculateExtended(
+        days:String,dailyWage:String,benefits:String,
+        seniorityDaily:String,maritalAllowance:String,nonSubjectBenefits:String,month:Int
+    ):ExtendedCalculation? {
+        val base=calculate(days,dailyWage,benefits,month) ?:return null
+        val seniority=parseNonnegative(seniorityDaily) ?:return null
+        val marital=parseNonnegative(maritalAllowance) ?:return null
+        val nonSubject=parseNonnegative(nonSubjectBenefits) ?:return null
+        return try{
+            val subject=Math.addExact(
+                Math.addExact(base.total,Math.multiplyExact(base.days.toLong(),seniority)),
+                marital)
+            val gross=Math.addExact(subject,nonSubject)
+            ExtendedCalculation(base.days,base.dailyWage,base.benefits,
+                seniority,marital,nonSubject,subject,gross)
+        }catch(e:ArithmeticException){null}
     }
 
     fun calculate(days:String,dailyWage:String,benefits:String,month:Int):Calculation? {

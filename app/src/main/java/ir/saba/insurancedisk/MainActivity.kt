@@ -16,12 +16,24 @@ class MainActivity : Activity() {
     private var dashboardShownOnce=false
     private val navy = Color.rgb(14,25,45)
 
-    class Store(activity: Activity): SQLiteOpenHelper(activity,"insurance.db",null,5) {
+    class Store(activity: Activity): SQLiteOpenHelper(activity,"insurance.db",null,6) {
+        private fun addPayrollV6(db:SQLiteDatabase){
+            db.execSQL("ALTER TABLE insurance_list_items ADD COLUMN seniority_daily INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE insurance_list_items ADD COLUMN marital_allowance INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE insurance_list_items ADD COLUMN non_subject_benefits INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE insurance_lists ADD COLUMN insured_rate_bps INTEGER NOT NULL DEFAULT 700")
+            db.execSQL("ALTER TABLE insurance_lists ADD COLUMN employer_rate_bps INTEGER NOT NULL DEFAULT 2000")
+            db.execSQL("ALTER TABLE insurance_lists ADD COLUMN unemployment_rate_bps INTEGER NOT NULL DEFAULT 300")
+            db.execSQL("ALTER TABLE insurance_lists ADD COLUMN rates_confirmed INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE insurance_lists ADD COLUMN employer_relief_amount INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE insurance_lists ADD COLUMN employer_relief_reference TEXT NOT NULL DEFAULT ''")
+        }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE workshops (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, code TEXT NOT NULL, contract_row TEXT NOT NULL DEFAULT '000', employer TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', insurance_rate REAL NOT NULL DEFAULT 0)")
             db.execSQL("CREATE TABLE employees (id INTEGER PRIMARY KEY AUTOINCREMENT, workshop_id INTEGER, name TEXT NOT NULL DEFAULT '', national_id TEXT NOT NULL DEFAULT '', insurance_no TEXT NOT NULL DEFAULT '', personnel_no TEXT NOT NULL DEFAULT '', first_name TEXT NOT NULL DEFAULT '', last_name TEXT NOT NULL DEFAULT '', father_name TEXT NOT NULL DEFAULT '', birth_cert_no TEXT NOT NULL DEFAULT '', birth_date TEXT NOT NULL DEFAULT '', issue_city TEXT NOT NULL DEFAULT '', gender TEXT NOT NULL DEFAULT '', nationality TEXT NOT NULL DEFAULT '', job_title TEXT NOT NULL DEFAULT '', job_code TEXT NOT NULL DEFAULT '')")
             db.execSQL("CREATE TABLE insurance_lists (id INTEGER PRIMARY KEY AUTOINCREMENT, workshop_id INTEGER NOT NULL, year INTEGER NOT NULL, month INTEGER NOT NULL, list_number INTEGER NOT NULL DEFAULT 1, UNIQUE(workshop_id,year,month))")
             db.execSQL("CREATE TABLE insurance_list_items (id INTEGER PRIMARY KEY AUTOINCREMENT, list_id INTEGER NOT NULL, employee_id INTEGER NOT NULL, days INTEGER NOT NULL, daily_wage INTEGER NOT NULL, benefits INTEGER NOT NULL DEFAULT 0, UNIQUE(list_id,employee_id))")
+            addPayrollV6(db)
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
             if(oldVersion<2) {
@@ -43,6 +55,7 @@ class MainActivity : Activity() {
                 db.execSQL("ALTER TABLE insurance_lists ADD COLUMN list_number INTEGER NOT NULL DEFAULT 1")
                 db.execSQL("UPDATE insurance_lists SET list_number=(SELECT COUNT(*) FROM insurance_lists previous WHERE previous.workshop_id=insurance_lists.workshop_id AND previous.year=insurance_lists.year AND (previous.month<insurance_lists.month OR (previous.month=insurance_lists.month AND previous.id<=insurance_lists.id)))")
             }
+            if(oldVersion<6)addPayrollV6(db)
         }
     }
 
