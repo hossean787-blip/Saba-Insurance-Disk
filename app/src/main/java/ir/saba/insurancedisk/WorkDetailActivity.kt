@@ -421,7 +421,7 @@ class WorkDetailActivity : Activity() {
         val month=currentList()?.month ?: 0
         val result=WorkDetailRules.calculateExtended(
             d,w,b,seniorityField.text.toString(),maritalField.text.toString(),
-            nonSubjectField.text.toString(),month)
+            nonSubjectField.text.toString(),month,currentList()?.year)
         preview.text=if(result==null)"جمع دستمزد و مزایا: —"
             else "جمع مشمول: ${amount(result.subjectTotal)} ریال  •  جمع پرداختی: ${amount(result.grossTotal)} ریال"
     }
@@ -435,7 +435,7 @@ class WorkDetailActivity : Activity() {
         val computed=WorkDetailRules.calculateExtended(
             daysField.text.toString(),wageField.text.toString(),
             benefitField.text.toString(),seniorityField.text.toString(),
-            maritalField.text.toString(),nonSubjectField.text.toString(),list.month
+            maritalField.text.toString(),nonSubjectField.text.toString(),list.month,list.year
         ) ?: run{toast("روز کارکرد یا مبالغ معتبر نیستند؛ سقف روزها را بررسی کنید");return}
         if(selectedItemId!=null && employee.id!=selectedEmployeeId){
             toast("کارمند ردیف ثبت‌شده قابل تغییر نیست");return

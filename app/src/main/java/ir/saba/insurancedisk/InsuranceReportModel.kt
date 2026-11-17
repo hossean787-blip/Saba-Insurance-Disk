@@ -64,7 +64,7 @@ internal object InsuranceReportMath {
         if(header.month !in 1..12)problems.add("ماه دوره نامعتبر است.")
         if(!InsurancePremiumMath.isOrdinaryRate(header.insuranceRate))
             problems.add("این کارگاه نرخ اختصاصی دارد؛ تفکیک سهم بیمه نیازمند بررسی است.")
-        val maxDays=WorkDetailRules.maxDays(header.month)
+        val maxDays=WorkDetailRules.maxDays(header.month,header.year)
         for((index,person) in people.withIndex()) {
             val row=index+1
             if(person.employeeWorkshopId!=header.workshopId) {

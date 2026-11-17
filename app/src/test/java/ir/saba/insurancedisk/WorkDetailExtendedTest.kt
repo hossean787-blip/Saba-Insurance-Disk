@@ -13,6 +13,12 @@ class WorkDetailExtendedTest {
     @Test fun legacyCalculatorRemainsCompatible(){
         assertEquals(1000L,WorkDetailRules.calculate("1","700","300",1)!!.total)
     }
+    @Test fun enforcesEsfandByYear(){
+        assertNull(WorkDetailRules.calculateExtended(
+            "30","100","0","0","0","0",12,1405))
+        assertNotNull(WorkDetailRules.calculateExtended(
+            "30","100","0","0","0","0",12,1403))
+    }
     @Test fun refusesNegativeNonnumericAndOverflow(){
         assertNull(WorkDetailRules.calculateExtended("1","100","0","-1","0","0",1))
         assertNull(WorkDetailRules.calculateExtended("1","100","0","0","x","0",1))

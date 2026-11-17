@@ -75,7 +75,7 @@ internal object MonthlyInsuranceRules {
         require(employerRelief==0L || reliefReference.trim().isNotEmpty()){
             "برای معافیت تأییدشده، شماره مستند الزامی است"
         }
-        val maxDays=WorkDetailRules.maxDays(month)
+        val maxDays=WorkDetailRules.maxDays(month,year)
         val maxDaily=Math.multiplyExact(minimum,7L)
         var days=0L;var wages=0L;var seniority=0L;var marital=0L
         var benefits=0L;var nonSubject=0L;var gross=0L;var capped=0L

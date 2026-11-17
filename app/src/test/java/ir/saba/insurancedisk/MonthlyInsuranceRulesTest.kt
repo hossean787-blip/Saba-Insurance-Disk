@@ -57,6 +57,11 @@ class MonthlyInsuranceRulesTest {
         assertEquals(3_463_656L,MonthlyInsuranceRules.minimumDailyWage(1404)!!)
         assertEquals(0L,MonthlyInsuranceRules.calculate(1405,1,emptyList()).totalPayable)
     }
+    @Test fun esfand1405HasOnly29Days(){
+        assertThrows(IllegalArgumentException::class.java){
+            MonthlyInsuranceRules.calculate(1405,12,listOf(MonthlyInsuranceEntry(30,100L,0L)))
+        }
+    }
     @Test fun rejectsArithmeticOverflow(){
         assertThrows(ArithmeticException::class.java){
             MonthlyInsuranceRules.calculate(1405,1,
