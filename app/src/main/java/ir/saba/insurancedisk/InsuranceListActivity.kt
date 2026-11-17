@@ -16,7 +16,7 @@ import android.widget.*
 import java.lang.Math
 
 class InsuranceListActivity : Activity() {
-    private data class Workshop(val id:Long,val name:String,val code:String)
+    private data class Workshop(val id:Long,val name:String,val code:String,val rate:Double)
     private val store by lazy { MainActivity.Store(this) }
     private val blue=SuraUi.primary
     private val ink=SuraUi.title
@@ -34,6 +34,12 @@ class InsuranceListActivity : Activity() {
     private lateinit var monthField:Spinner
     private lateinit var numberField:TextView
     private lateinit var searchField:EditText
+    private lateinit var insuredRateField:EditText
+    private lateinit var employerRateField:EditText
+    private lateinit var unemploymentRateField:EditText
+    private lateinit var specialRatesConfirmed:CheckBox
+    private lateinit var employerReliefField:EditText
+    private lateinit var employerReliefReference:EditText
     private var workshops=listOf<Workshop>()
     private var selectedId:Long?=null
     private var editing=false
@@ -51,6 +57,14 @@ class InsuranceListActivity : Activity() {
     private fun two(n:Int)=n.toString().padStart(2,'0')
     private fun amount(n:Long)=String.format(java.util.Locale.US,"%,d",n)
     private fun msg(s:String)=Toast.makeText(this,s,Toast.LENGTH_LONG).show()
+    private fun decimalInput(hintText:String):EditText=EditText(this).apply{
+        hint=hintText
+        inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        textSize=15f
+        setTextColor(ink)
+        setSingleLine(true)
+        gravity=Gravity.CENTER
+    }
     private fun sectionTitle(s:String)=label(s,17f,blue).apply {
         setTypeface(null,Typeface.BOLD);setPadding(0,dp(10),0,dp(8))
     }
@@ -86,9 +100,9 @@ class InsuranceListActivity : Activity() {
         window.statusBarColor=SuraUi.charcoal
         workshops=mutableListOf<Workshop>().also { all ->
             store.readableDatabase.rawQuery(
-                "SELECT id,name,code FROM workshops ORDER BY name,code",null
+                "SELECT id,name,code,insurance_rate FROM workshops ORDER BY name,code",null
             ).use { c->while(c.moveToNext())
-                all.add(Workshop(c.getLong(0),c.getString(1),c.getString(2)))
+                all.add(Workshop(c.getLong(0),c.getString(1),c.getString(2),c.getDouble(3)))
             }
         }
         draw()
@@ -110,7 +124,7 @@ class InsuranceListActivity : Activity() {
             view.setPadding(0,top,0,bottom+dp(12));insets
         }
         setContentView(SuraUi.mount(this,scroll,"lists"))
-        root.addView(SuraUi.banner(this,"لیست بیمه ماهانه","دوره‌های بیمه، گزارش و مشخصات لیست","list"),
+        root.addView(SuraUi.banner(this,"لیست بیمه ماهانه","ثبت دوره، جمع‌بندی مزایا، نرخ‌ها و محاسبات قانونی","list"),
             LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(14)})
         toolbar(
             Triple("جدید","＋",{startNew()}),
@@ -200,6 +214,42 @@ class InsuranceListActivity : Activity() {
             }
         }
         editor.addView(fieldsRow)
+        editor.addView(sectionTitle("نرخ‌های حق بیمه (درصد)"))
+        insuredRateField=decimalInput("۷")
+        employerRateField=decimalInput("۲۰")
+        unemploymentRateField=decimalInput("۳")
+        listOf(
+            framed("سهم بیمه‌شده",insuredRateField),
+            framed("سهم کارفرما",employerRateField),
+            framed("بیمه بیکاری",unemploymentRateField)
+        ).forEach{editor.addView(it,LinearLayout.LayoutParams(-1,-2).apply{
+            bottomMargin=dp(7)
+        })}
+        specialRatesConfirmed=CheckBox(this).apply{
+            text="نرخ اختصاصی مطابق مستند معتبر تأیید شده است"
+            textSize=12.5f
+            setTextColor(ink)
+        }
+        editor.addView(specialRatesConfirmed)
+        editor.addView(label(
+            "برای کارگاه عادی، نسبت ۷ / ۲۰ / ۳ ثابت است. برای نرخ اختصاصی، نرخ‌های تأییدشده را وارد کنید؛ مجموع باید برابر نرخ ثبت‌شده کارگاه باشد.",
+            11.5f,muted).apply{setPadding(dp(4),dp(3),dp(4),dp(11))})
+        employerReliefField=decimalInput("۰ ریال")
+        employerReliefField.inputType=InputType.TYPE_CLASS_NUMBER
+        employerReliefReference=EditText(this).apply{
+            hint="شماره تأییدیه/ابلاغ شعبه"
+            textSize=13f
+            setTextColor(ink)
+            setSingleLine(true)
+        }
+        editor.addView(sectionTitle("معافیت تأییدشده سهم کارفرما"))
+        editor.addView(framed("مبلغ معافیت تأییدشده این ماه (ریال)",employerReliefField),
+            LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
+        editor.addView(framed("مستند تأییدیه معافیت",employerReliefReference),
+            LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
+        editor.addView(label(
+            "معافیت خودکار نیست؛ مبلغ و مستند تأییدشده شعبه را ثبت کنید. جمع پرداختی پس از کسر مبلغ مجاز محاسبه می‌شود.",
+            11.5f,muted).apply{setPadding(dp(4),0,dp(4),dp(12))})
         root.addView(editor,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(12)})
 
         details=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
@@ -209,12 +259,21 @@ class InsuranceListActivity : Activity() {
     }
     private fun editable(value:Boolean){
         editing=value;workshopField.isEnabled=value;yearField.isEnabled=value;monthField.isEnabled=value
+        insuredRateField.isEnabled=value
+        employerRateField.isEnabled=value
+        unemploymentRateField.isEnabled=value
+        specialRatesConfirmed.isEnabled=value
+        employerReliefField.isEnabled=value
+        employerReliefReference.isEnabled=value
     }
     private fun cancel(initial:Boolean=false){
         selectedId=null
         editable(false)
         workshopField.setSelection(0);yearField.setText("");monthField.setSelection(0)
         numberField.text="خودکار"
+        insuredRateField.setText("7");employerRateField.setText("20")
+        unemploymentRateField.setText("3");specialRatesConfirmed.isChecked=false
+        employerReliefField.setText("0");employerReliefReference.setText("")
         formHint.text="از جدول یک لیست انتخاب کنید یا «جدید» را بزنید."
         if(::details.isInitialized)details.removeAllViews()
         if(!initial)refreshRows()
@@ -240,7 +299,9 @@ class InsuranceListActivity : Activity() {
         val id=selectedId ?: return
         editable(false)
         store.readableDatabase.rawQuery(
-            "SELECT workshop_id,year,month,list_number FROM insurance_lists WHERE id=?",
+            """SELECT workshop_id,year,month,list_number,insured_rate_bps,employer_rate_bps,
+                      unemployment_rate_bps,rates_confirmed,employer_relief_amount,
+                      employer_relief_reference FROM insurance_lists WHERE id=?""",
             arrayOf(id.toString())
         ).use { c->
             if(!c.moveToFirst()){
@@ -253,6 +314,12 @@ class InsuranceListActivity : Activity() {
             yearField.setText(two(c.getInt(1)%100))
             monthField.setSelection(c.getInt(2).coerceIn(1,12))
             numberField.text=two(c.getInt(3))
+            insuredRateField.setText(MonthlyInsuranceRules.formatRate(c.getInt(4)))
+            employerRateField.setText(MonthlyInsuranceRules.formatRate(c.getInt(5)))
+            unemploymentRateField.setText(MonthlyInsuranceRules.formatRate(c.getInt(6)))
+            specialRatesConfirmed.isChecked=c.getInt(7)==1
+            employerReliefField.setText(c.getLong(8).toString())
+            employerReliefReference.setText(c.getString(9) ?: "")
             formHint.text=if(wi<0)"کارگاه این لیست در فهرست موجود نیست."
                 else "لیست انتخاب شد؛ برای اصلاح «ویرایش» را بزنید."
         }
@@ -300,7 +367,7 @@ class InsuranceListActivity : Activity() {
         try{
             val sql="""SELECT l.id,w.name,w.code,l.year,l.month,l.list_number,
                     COUNT(i.id),COALESCE(SUM(i.days),0),
-                    COALESCE(SUM(i.days*i.daily_wage+i.benefits),0)
+                    COALESCE(SUM(i.days*i.daily_wage+i.benefits+i.days*i.seniority_daily+i.marital_allowance),0)
                 FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id
                 LEFT JOIN insurance_list_items i ON i.list_id=l.id
                 GROUP BY l.id,w.name,w.code,l.year,l.month,l.list_number
@@ -357,19 +424,35 @@ class InsuranceListActivity : Activity() {
         details.addView(sectionTitle(title))
         details.addView(infoTable(pairs))
     }
+    private fun loadMonthlyEntries(id:Long):List<MonthlyInsuranceEntry>{
+        val result=mutableListOf<MonthlyInsuranceEntry>()
+        store.readableDatabase.rawQuery(
+            """SELECT days,daily_wage,benefits,seniority_daily,marital_allowance,
+                      non_subject_benefits FROM insurance_list_items
+               WHERE list_id=? ORDER BY id""",arrayOf(id.toString())
+        ).use{c->while(c.moveToNext()){
+            result.add(MonthlyInsuranceEntry(
+                c.getInt(0),c.getLong(1),c.getLong(2),
+                c.getLong(3),c.getLong(4),c.getLong(5)))
+        }}
+        return result
+    }
     private fun showDetails(id:Long){
         details.removeAllViews()
-        var workshopRate=0.0
-        var selectedYear=0
-        store.readableDatabase.rawQuery(
-            """SELECT w.code,w.contract_row,w.name,w.employer,w.address,l.year,l.month,l.list_number,w.insurance_rate
-                FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id
-                WHERE l.id=?""",
+        data class Config(
+            val year:Int,val month:Int,val rate:Double,
+            val insured:Int,val employer:Int,val unemployment:Int,
+            val confirmed:Boolean,val relief:Long,val reference:String
+        )
+        val config=store.readableDatabase.rawQuery(
+            """SELECT w.code,w.contract_row,w.name,w.employer,w.address,l.year,l.month,
+                      l.list_number,w.insurance_rate,l.insured_rate_bps,l.employer_rate_bps,
+                      l.unemployment_rate_bps,l.rates_confirmed,l.employer_relief_amount,
+                      l.employer_relief_reference
+               FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id WHERE l.id=?""",
             arrayOf(id.toString())
         ).use{c->
             if(!c.moveToFirst())return
-            selectedYear=c.getInt(5)
-            workshopRate=c.getDouble(8)
             group("اطلاعات کارگاه و دوره",listOf(
                 "کد کارگاه" to c.getString(0),
                 "ردیف پیمان" to c.getString(1),
@@ -379,71 +462,91 @@ class InsuranceListActivity : Activity() {
                 "سال / ماه" to "${two(c.getInt(5)%100)} / ${two(c.getInt(6))}",
                 "شماره لیست" to two(c.getInt(7))
             ))
+            Config(c.getInt(5),c.getInt(6),c.getDouble(8),c.getInt(9),
+                c.getInt(10),c.getInt(11),c.getInt(12)==1,c.getLong(13),
+                c.getString(14) ?: "")
         }
         try{
-            var people=0L;var days=0L;var daily=0L;var monthly=0L;var benefits=0L
-            val subjectBases=mutableListOf<Long>()
-            val wageWarnings=mutableListOf<String>()
-            store.readableDatabase.rawQuery(
-                "SELECT days,daily_wage,benefits FROM insurance_list_items WHERE list_id=?",
-                arrayOf(id.toString())
-            ).use{c->while(c.moveToNext()){
-                people=Math.addExact(people,1L)
-                days=Math.addExact(days,c.getLong(0))
-                daily=Math.addExact(daily,c.getLong(1))
-                val wage=Math.multiplyExact(c.getLong(0),c.getLong(1))
-                monthly=Math.addExact(monthly,wage)
-                benefits=Math.addExact(benefits,c.getLong(2))
-                subjectBases.add(Math.addExact(wage,c.getLong(2)))
-                InsurancePremiumMath.wageWarning(selectedYear,c.getLong(1))
-                    ?.let { if(!wageWarnings.contains(it))wageWarnings.add(it) }
-            }}
-            val total=Math.addExact(monthly,benefits)
-            group("خلاصه محاسبات خودکار — فقط خواندنی",listOf(
-                "تعداد نفرات" to people.toString(),
-                "جمع روزهای کارکرد" to days.toString(),
-                "جمع دستمزد روزانه" to "${amount(daily)} ریال",
-                "جمع دستمزد ماهانه" to "${amount(monthly)} ریال",
-                "جمع مزایای مشمول" to "${amount(benefits)} ریال",
-                "جمع دستمزد و مزایای مشمول" to "${amount(total)} ریال"
-            ))
-            if(InsurancePremiumMath.isOrdinaryRate(workshopRate)){
-                val premium=InsurancePremiumMath.estimate(subjectBases)
-                group("برآورد حق بیمه عادی (۳۰٪)",listOf(
-                    "مبنای مشمول ثبت‌شده" to "${amount(premium.base)} ریال",
-                    "سهم بیمه‌شده (۷٪)" to "${amount(premium.insured)} ریال",
-                    "سهم کارفرما (۲۰٪)" to "${amount(premium.employer)} ریال",
-                    "بیمه بیکاری (۳٪)" to "${amount(premium.unemployment)} ریال",
-                    "جمع پرداختی کارفرما (۲۳٪)" to "${amount(premium.employerWithUnemployment)} ریال",
-                    "جمع کل برآورد حق بیمه" to "${amount(premium.total)} ریال"
-                ))
-            }else{
-                group("حق بیمه نیازمند بررسی",listOf(
-                    "نرخ اختصاصی کارگاه" to "${workshopRate}٪",
-                    "سهم بیمه‌شده / کارفرما / بیکاری" to "تفکیک‌نشده"
-                ))
+            val entries=loadMonthlyEntries(id)
+            var days=0L;var wage=0L;var seniority=0L;var marital=0L
+            var benefits=0L;var nonSubject=0L
+            entries.forEach{
+                days=Math.addExact(days,it.days.toLong())
+                wage=Math.addExact(wage,Math.multiplyExact(it.days.toLong(),it.dailyWage))
+                seniority=Math.addExact(seniority,Math.multiplyExact(it.days.toLong(),it.seniorityDaily))
+                marital=Math.addExact(marital,it.maritalAllowance)
+                benefits=Math.addExact(benefits,it.benefits)
+                nonSubject=Math.addExact(nonSubject,it.nonSubjectBenefits)
             }
-            group("اقلام تکمیلی",listOf(
-                "مزایای غیرمشمول" to "در فرم فعلی تفکیک نشده",
-                "پایه سنواتی" to "در فرم فعلی تفکیک نشده",
-                "حق تأهل" to "در فرم فعلی تفکیک نشده",
-                "۴٪ مشاغل سخت" to "بدهی جداگانه؛ در جمع ماهانه لحاظ نشده"
+            val subject=Math.addExact(Math.addExact(wage,seniority),
+                Math.addExact(benefits,marital))
+            group("خلاصه محاسبات خودکار",listOf(
+                "تعداد نفرات" to entries.size.toString(),
+                "روزهای کارکرد" to days.toString(),
+                "دستمزد ماهانه" to "${amount(wage)} ریال",
+                "پایه سنوات" to "${amount(seniority)} ریال",
+                "حق تأهل" to "${amount(marital)} ریال",
+                "سایر مزایای مشمول" to "${amount(benefits)} ریال",
+                "مزایای غیرمشمول" to "${amount(nonSubject)} ریال",
+                "جمع مزد و مزایای مشمول" to "${amount(subject)} ریال",
+                "کل پرداختی قبل از کسورات" to "${amount(Math.addExact(subject,nonSubject))} ریال"
             ))
-            val note=if(InsurancePremiumMath.isOrdinaryRate(workshopRate))
-                "این مبالغ برآورد نرخ عادی‌اند؛ مزایای ثبت‌شده همگی مشمول فرض شده‌اند. معافیت، سقف مزد، وضعیت شغلی و تأیید شعبه باید بررسی شود. خروجی دیسک هنوز تولید نشده است."
-            else
-                "برای نرخ‌های اختصاصی، معافیت‌ها یا استثناها نمی‌توان سهم‌های قانونی را با فرض ۷/۲۰/۳ محاسبه کرد."
-            details.addView(label(note,12f,Color.rgb(151,88,37)).apply{
-                setPadding(dp(7),dp(13),dp(7),dp(13))
-            })
-            wageWarnings.forEach{warning->
+            val ordinary=InsurancePremiumMath.isOrdinaryRate(config.rate)
+            if(!ordinary && !config.confirmed){
+                details.addView(label(
+                    "نرخ اختصاصی کارگاه باید در فرم لیست با مستند معتبر تأیید شود؛ محاسبه پرداختی تا آن زمان متوقف است.",
+                    12f,Color.rgb(166,55,45)).apply{setPadding(dp(7),dp(10),dp(7),dp(10))})
+                return
+            }
+            val standard=Triple(config.insured,config.employer,config.unemployment)==
+                Triple(700,2000,300)
+            if(ordinary && !standard){
+                details.addView(label("نرخ عادی باید دقیقاً ۷، ۲۰ و ۳ درصد باشد.",
+                    12f,Color.rgb(166,55,45)))
+                return
+            }
+            val wanted=MonthlyInsuranceRules.rateBps(config.rate.toString())
+            val sumRates=config.insured+config.employer+config.unemployment
+            if(!ordinary && (wanted==null || sumRates!=wanted)){
+                details.addView(label(
+                    "جمع نرخ‌های ثبت‌شده با نرخ اختصاصی کارگاه یکسان نیست.",
+                    12f,Color.rgb(166,55,45)))
+                return
+            }
+            val premium=MonthlyInsuranceRules.calculate(
+                config.year,config.month,entries,
+                config.insured,config.employer,config.unemployment,
+                config.relief,config.reference)
+            group("محاسبه حق بیمه",listOf(
+                "جمع مشمول قبل از سقف" to "${amount(premium.subjectGross)} ریال",
+                "مازاد حذف‌شده بابت سقف" to "${amount(premium.excludedByCap)} ریال",
+                "مبنای حق بیمه پس از سقف" to "${amount(premium.cappedSubject)} ریال",
+                "سهم بیمه‌شده (${MonthlyInsuranceRules.formatRate(config.insured)}٪)" to
+                    "${amount(premium.insured)} ریال",
+                "سهم کارفرما (${MonthlyInsuranceRules.formatRate(config.employer)}٪)" to
+                    "${amount(premium.employer)} ریال",
+                "بیمه بیکاری (${MonthlyInsuranceRules.formatRate(config.unemployment)}٪)" to
+                    "${amount(premium.unemployment)} ریال",
+                "معافیت تأییدشده سهم کارفرما" to
+                    "${amount(premium.approvedEmployerRelief)} ریال",
+                "سهم پرداختنی کارفرما پس از معافیت" to
+                    "${amount(premium.employerPayable)} ریال",
+                "جمع حق بیمه قابل پرداخت" to "${amount(premium.totalPayable)} ریال"
+            ))
+            premium.warnings.forEach{warning->
                 details.addView(label("⚠ $warning",12f,Color.rgb(166,55,45)).apply{
                     setPadding(dp(7),dp(5),dp(7),dp(5))
                 })
             }
+            details.addView(label(
+                "معافیت فقط بر مبنای مبلغ تأییدشده اعمال می‌شود. سهم ۴٪ مشاغل سخت بدهی جداگانه است و در لیست عادی محاسبه نمی‌شود.",
+                12f,Color.rgb(151,88,37)).apply{setPadding(dp(7),dp(13),dp(7),dp(13))})
+        }catch(ex:IllegalArgumentException){
+            details.addView(label("نیازمند اصلاح یا تأیید: ${ex.message}",
+                12f,Color.rgb(166,55,45)).apply{setPadding(dp(7),dp(12),dp(7),dp(12))})
         }catch(ex:ArithmeticException){
             details.addView(label("خطای سرریز محاسبات؛ ریزکارکرد را بررسی کنید.",
-                13f,Color.rgb(166,55,45)))
+                12f,Color.rgb(166,55,45)))
         }
     }
     private fun save(){
