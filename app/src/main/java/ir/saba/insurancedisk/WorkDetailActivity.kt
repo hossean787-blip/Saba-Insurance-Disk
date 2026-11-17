@@ -22,7 +22,10 @@ class WorkDetailActivity : Activity() {
     private data class Item(
         val id:Long,val employeeId:Long,val name:String,val insurance:String,
         val days:Int,val dailyWage:Long,val benefits:Long,val workshopId:Long?,
-        val personnelNumber:String=""
+        val personnelNumber:String="",
+        val seniorityDaily:Long=0L,
+        val maritalAllowance:Long=0L,
+        val nonSubjectBenefits:Long=0L
     )
 
     private val store by lazy { MainActivity.Store(this) }
@@ -40,6 +43,9 @@ class WorkDetailActivity : Activity() {
     private lateinit var daysField:EditText
     private lateinit var wageField:EditText
     private lateinit var benefitField:EditText
+    private lateinit var seniorityField:EditText
+    private lateinit var maritalField:EditText
+    private lateinit var nonSubjectField:EditText
     private lateinit var preview:TextView
     private lateinit var formStatus:TextView
     private lateinit var table:LinearLayout
@@ -244,6 +250,9 @@ class WorkDetailActivity : Activity() {
         daysField=numberInput("۰ تا ۳۱")
         wageField=numberInput("ریال")
         benefitField=numberInput("ریال")
+        seniorityField=numberInput("مبلغ روزانه به ریال")
+        maritalField=numberInput("مبلغ ماهانه به ریال")
+        nonSubjectField=numberInput("مبلغ غیرمشمول به ریال")
         val formRow=LinearLayout(this).apply {
             orientation=LinearLayout.HORIZONTAL
             layoutDirection=View.LAYOUT_DIRECTION_RTL
@@ -266,8 +275,17 @@ class WorkDetailActivity : Activity() {
         editor.addView(formRow,LinearLayout.LayoutParams(-1,-2).apply {
             bottomMargin=dp(10)
         })
-        editor.addView(frame("مزایای مشمول ماهانه (ریال) *",benefitField),
+        editor.addView(frame("سایر مزایای مشمول ماهانه (ریال) *",benefitField),
+            LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(9)})
+        editor.addView(frame("پایه سنوات روزانه (ریال)",seniorityField),
+            LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(9)})
+        editor.addView(frame("حق تأهل ماهانه (ریال)",maritalField),
+            LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(9)})
+        editor.addView(frame("مزایای غیرمشمول (ریال)",nonSubjectField),
             LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(11)})
+        editor.addView(label(
+            "راهنمای ۱۴۰۵: پایه سنوات روزانه ۱۶۶٬۶۶۷ ریال برای افراد واجد شرایط؛ حق تأهل ماهانه ۵٬۰۰۰٬۰۰۰ ریال. مبالغ مطابق وضعیت فرد وارد شود.",
+            11.5f,muted).apply{setPadding(dp(6),0,dp(6),dp(13))})
         preview=label("جمع دستمزد و مزایا: —",14f,blue).apply {
             setTypeface(null,Typeface.BOLD)
             setPadding(dp(9),dp(12),dp(9),dp(12))
@@ -282,7 +300,7 @@ class WorkDetailActivity : Activity() {
         summary=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
         root.addView(summary)
         root.addView(label(
-            "این صفحه فقط دستمزد و مزایای ثبت‌شده را جمع می‌کند؛ محاسبات حق بیمه در بخش مستقل تکمیل می‌شوند.",
+            "مزایای مشمول در مبنای بیمه لحاظ می‌شوند؛ مزایای غیرمشمول تنها در جمع پرداختی وارد می‌شوند. محاسبه حق بیمه در لیست ماهانه است.",
             12f,muted
         ).apply {setPadding(dp(5),dp(11),dp(5),dp(14))})
 
@@ -294,6 +312,9 @@ class WorkDetailActivity : Activity() {
         daysField.addTextChangedListener(watcher)
         wageField.addTextChangedListener(watcher)
         benefitField.addTextChangedListener(watcher)
+        seniorityField.addTextChangedListener(watcher)
+        maritalField.addTextChangedListener(watcher)
+        nonSubjectField.addTextChangedListener(watcher)
 
         listPicker.onItemSelectedListener=object:android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent:android.widget.AdapterView<*>?){}
@@ -331,6 +352,9 @@ class WorkDetailActivity : Activity() {
         daysField.isEnabled=value
         wageField.isEnabled=value
         benefitField.isEnabled=value
+        seniorityField.isEnabled=value
+        maritalField.isEnabled=value
+        nonSubjectField.isEnabled=value
         updatePreview()
     }
     private fun resetForm() {
@@ -341,6 +365,9 @@ class WorkDetailActivity : Activity() {
         daysField.setText("")
         wageField.setText("")
         benefitField.setText("")
+        seniorityField.setText("")
+        maritalField.setText("")
+        nonSubjectField.setText("")
         enableEdit(false)
         formStatus.text=if(employees.isEmpty())
             "در این کارگاه کارمندی ثبت نشده است؛ ابتدا در بخش کارکنان، کارگاه فرد را انتخاب کنید."
@@ -353,6 +380,9 @@ class WorkDetailActivity : Activity() {
         if(employees.isEmpty()){toast("کارمند مرتبط با این کارگاه پیدا نشد");return}
         enableEdit(true,isNew=true)
         benefitField.setText("0")
+        seniorityField.setText("0")
+        maritalField.setText("0")
+        nonSubjectField.setText("0")
         formStatus.text="کارمند و ارقام ماهانه را وارد کنید، سپس «ثبت» را بزنید."
     }
     private fun editItem() {
@@ -372,6 +402,9 @@ class WorkDetailActivity : Activity() {
         daysField.setText(item.days.toString())
         wageField.setText(item.dailyWage.toString())
         benefitField.setText(item.benefits.toString())
+        seniorityField.setText(item.seniorityDaily.toString())
+        maritalField.setText(item.maritalAllowance.toString())
+        nonSubjectField.setText(item.nonSubjectBenefits.toString())
         val index=employees.indexOfFirst{it.id==item.employeeId}
         employeePicker.setSelection(index+1)
         enableEdit(false)
@@ -386,9 +419,11 @@ class WorkDetailActivity : Activity() {
         val w=wageField.text.toString()
         val b=benefitField.text.toString()
         val month=currentList()?.month ?: 0
-        val result=WorkDetailRules.calculate(d,w,b,month)
+        val result=WorkDetailRules.calculateExtended(
+            d,w,b,seniorityField.text.toString(),maritalField.text.toString(),
+            nonSubjectField.text.toString(),month)
         preview.text=if(result==null)"جمع دستمزد و مزایا: —"
-            else "جمع ماهانه: ${amount(result.total)} ریال"
+            else "جمع مشمول: ${amount(result.subjectTotal)} ریال  •  جمع پرداختی: ${amount(result.grossTotal)} ریال"
     }
     private fun saveItem() {
         if(!::employeePicker.isInitialized || !editing){
@@ -397,9 +432,10 @@ class WorkDetailActivity : Activity() {
         }
         val list=currentList() ?: run{toast("لیست ماهانه موجود نیست");return}
         val employee=selectedEmployee() ?: run{toast("کارمند را انتخاب کنید");return}
-        val computed=WorkDetailRules.calculate(
+        val computed=WorkDetailRules.calculateExtended(
             daysField.text.toString(),wageField.text.toString(),
-            benefitField.text.toString(),list.month
+            benefitField.text.toString(),seniorityField.text.toString(),
+            maritalField.text.toString(),nonSubjectField.text.toString(),list.month
         ) ?: run{toast("روز کارکرد یا مبالغ معتبر نیستند؛ سقف روزها را بررسی کنید");return}
         if(selectedItemId!=null && employee.id!=selectedEmployeeId){
             toast("کارمند ردیف ثبت‌شده قابل تغییر نیست");return
@@ -424,6 +460,9 @@ class WorkDetailActivity : Activity() {
             put("days",computed.days)
             put("daily_wage",computed.dailyWage)
             put("benefits",computed.benefits)
+            put("seniority_daily",computed.seniorityDaily)
+            put("marital_allowance",computed.maritalAllowance)
+            put("non_subject_benefits",computed.nonSubjectBenefits)
         }
         try {
             db.beginTransaction()
@@ -452,7 +491,8 @@ class WorkDetailActivity : Activity() {
         store.readableDatabase.rawQuery(
             """SELECT i.id,i.employee_id,COALESCE(e.first_name,''),
                       COALESCE(e.last_name,''),COALESCE(e.insurance_no,''),
-                      i.days,i.daily_wage,i.benefits,e.workshop_id
+                      i.days,i.daily_wage,i.benefits,e.workshop_id,
+                      i.seniority_daily,i.marital_allowance,i.non_subject_benefits
                FROM insurance_list_items i LEFT JOIN employees e ON e.id=i.employee_id
                WHERE i.id=? AND i.list_id=?""",
             arrayOf(id.toString(),list.id.toString())
@@ -461,7 +501,8 @@ class WorkDetailActivity : Activity() {
                 c.getLong(0),c.getLong(1),
                 "${c.getString(2)} ${c.getString(3)}",
                 c.getString(4),c.getInt(5),c.getLong(6),c.getLong(7),
-                if(c.isNull(8))null else c.getLong(8)
+                if(c.isNull(8))null else c.getLong(8),"",
+                c.getLong(9),c.getLong(10),c.getLong(11)
             ))
         }
     }
@@ -505,7 +546,7 @@ class WorkDetailActivity : Activity() {
                 else->SuraUi.pastel
             }
             this.background=shape(background,7,if(chosen)Color.rgb(55,128,210) else 0)
-            val widths=listOf(148,105,65,132,132,147)
+            val widths=listOf(148,105,65,132,132,147,120)
             columns.forEachIndexed { n,value->addView(cell(value,widths[n],header)) }
             if(callback!=null){
                 SuraUi.touch(this@WorkDetailActivity,this,7)
@@ -544,12 +585,15 @@ class WorkDetailActivity : Activity() {
         val sx=tableScroll.scrollX
         table.removeAllViews()
         table.addView(tableRow(
-            listOf("کارمند","شماره بیمه","روز","مزد روزانه","مزایای مشمول","جمع ماهانه"),header=true))
+            listOf("کارمند","شماره بیمه","روز","مزد روزانه","مزایای مشمول","جمع مشمول","غیرمشمول"),header=true))
         var visible=0
         var people=0L
         var daysTotal=0L
         var wagesTotal=0L
         var benefitsTotal=0L
+        var seniorityTotal=0L
+        var maritalTotal=0L
+        var nonSubjectTotal=0L
         var grandTotal=0L
         var mismatch=0
         var overflow=false
@@ -558,7 +602,8 @@ class WorkDetailActivity : Activity() {
             """SELECT i.id,i.employee_id,COALESCE(e.first_name,''),
                       COALESCE(e.last_name,''),COALESCE(e.insurance_no,''),
                       i.days,i.daily_wage,i.benefits,e.workshop_id,
-                      COALESCE(e.personnel_no,'')
+                      COALESCE(e.personnel_no,''),
+                      i.seniority_daily,i.marital_allowance,i.non_subject_benefits
                FROM insurance_list_items i
                LEFT JOIN employees e ON e.id=i.employee_id
                WHERE i.list_id=? ORDER BY e.last_name,e.first_name,i.id""",
@@ -568,7 +613,8 @@ class WorkDetailActivity : Activity() {
                 val item=Item(c.getLong(0),c.getLong(1),
                     "${c.getString(2)} ${c.getString(3)}".trim(),
                     c.getString(4),c.getInt(5),c.getLong(6),c.getLong(7),
-                    if(c.isNull(8))null else c.getLong(8),c.getString(9))
+                    if(c.isNull(8))null else c.getLong(8),c.getString(9),
+                    c.getLong(10),c.getLong(11),c.getLong(12))
                 val incompatible=item.workshopId!=list.workshopId
                 if(incompatible)mismatch++
                 try {
@@ -577,23 +623,32 @@ class WorkDetailActivity : Activity() {
                     wagesTotal=Math.addExact(wagesTotal,
                         Math.multiplyExact(item.days.toLong(),item.dailyWage))
                     benefitsTotal=Math.addExact(benefitsTotal,item.benefits)
-                    grandTotal=Math.addExact(wagesTotal,benefitsTotal)
+                    seniorityTotal=Math.addExact(seniorityTotal,
+                        Math.multiplyExact(item.days.toLong(),item.seniorityDaily))
+                    maritalTotal=Math.addExact(maritalTotal,item.maritalAllowance)
+                    nonSubjectTotal=Math.addExact(nonSubjectTotal,item.nonSubjectBenefits)
+                    grandTotal=Math.addExact(Math.addExact(
+                        Math.addExact(wagesTotal,benefitsTotal),seniorityTotal),maritalTotal)
                 }catch(ex:ArithmeticException){overflow=true}
                 val name=item.name.ifEmpty{"کارمند ناموجود"}
                 if(!WorkDetailRules.matchesSearch(
                     name,item.insurance,item.personnelNumber,item.employeeId,needle
                 ))continue
-                val total=try {
-                    amount(Math.addExact(Math.multiplyExact(item.days.toLong(),item.dailyWage),
-                        item.benefits))
-                }catch(ex:ArithmeticException){"خطای محاسبه"}
+                val totals=try{
+                    val extra=Math.addExact(item.benefits,
+                        Math.addExact(Math.multiplyExact(item.days.toLong(),item.seniorityDaily),
+                            item.maritalAllowance))
+                    Pair(amount(extra),amount(Math.addExact(
+                        Math.multiplyExact(item.days.toLong(),item.dailyWage),extra)))
+                }catch(ex:ArithmeticException){Pair("خطای محاسبه","خطای محاسبه")}
                 table.addView(tableRow(listOf(
                     (if(incompatible)"⚠ " else "")+name,
                     item.insurance,
                     item.days.toString(),
                     amount(item.dailyWage),
-                    amount(item.benefits),
-                    total
+                    totals.first,
+                    totals.second,
+                    amount(item.nonSubjectBenefits)
                 ),chosen=selectedItemId==item.id,index=visible,invalid=incompatible,
                     callback={selectItem(item)}))
                 visible++
@@ -610,8 +665,11 @@ class WorkDetailActivity : Activity() {
             "تعداد کارکنان لیست" to people.toString(),
             "جمع روزهای کارکرد" to daysTotal.toString(),
             "جمع دستمزد ماهانه" to (if(overflow)"خطای محاسبات" else "${amount(wagesTotal)} ریال"),
-            "جمع مزایای مشمول" to (if(overflow)"خطای محاسبات" else "${amount(benefitsTotal)} ریال"),
-            "جمع دستمزد و مزایا" to (if(overflow)"خطای محاسبات" else "${amount(grandTotal)} ریال")
+            "سایر مزایای مشمول" to (if(overflow)"خطای محاسبات" else "${amount(benefitsTotal)} ریال"),
+            "جمع پایه سنوات" to (if(overflow)"خطای محاسبات" else "${amount(seniorityTotal)} ریال"),
+            "جمع حق تأهل" to (if(overflow)"خطای محاسبات" else "${amount(maritalTotal)} ریال"),
+            "جمع مزایای غیرمشمول" to (if(overflow)"خطای محاسبات" else "${amount(nonSubjectTotal)} ریال"),
+            "جمع دستمزد و مزایای مشمول" to (if(overflow)"خطای محاسبات" else "${amount(grandTotal)} ریال")
         )))
         if(mismatch>0)summary.addView(label(
             "هشدار: $mismatch ردیف قدیمی به کارمند این کارگاه متصل نیست. برای جلوگیری از تغییر نادرست سوابق، ویرایش این ردیف‌ها محدود شده است.",
