@@ -247,13 +247,19 @@ internal object InsurancePdfWriter {
         private fun summary() {
             ensure(197f)
             title("خلاصه محاسبات",32f)
-            val rows=listOf(
+            val rows=mutableListOf(
                 "تعداد کارکنان" to report.totals.employeeCount.toString(),
                 "جمع روزهای کارکرد" to report.totals.days.toString(),
                 "جمع دستمزد ماهانه" to "${format(report.totals.wages)} ریال",
                 "جمع مزایای مشمول ثبت‌شده" to "${format(report.totals.benefits)} ریال",
                 "جمع دستمزد و مزایای مشمول" to "${format(report.totals.total)} ریال"
             )
+            report.premium?.let { p->
+                rows.add("سهم بیمه‌شده (۷٪)" to "${format(p.insured)} ریال")
+                rows.add("سهم کارفرما (۲۰٪)" to "${format(p.employer)} ریال")
+                rows.add("بیمه بیکاری (۳٪)" to "${format(p.unemployment)} ریال")
+                rows.add("جمع کل حق بیمه برآوردی" to "${format(p.total)} ریال")
+            } ?: rows.add("حق بیمه نرخ اختصاصی" to "نیازمند بررسی")
             for((i,pair) in rows.withIndex()) {
                 ensure(29f)
                 canvas!!.drawRect(MARGIN,y,WIDTH-MARGIN,y+27f,
@@ -267,7 +273,7 @@ internal object InsurancePdfWriter {
             y+=9f
         }
         private fun disclaimer(){
-            val notice="سهم بیمه‌شده، سهم کارفرما، بیمه بیکاری و ۴٪ مشاغل سخت و زیان‌آور در این نسخه محاسبه نشده‌اند. این فایل گزارش داخلی است و جایگزین فایل دیسک قابل ارسال به تأمین اجتماعی نیست."
+            val notice="حق بیمه با فرض نرخ عادی ۷٪، ۲۰٪ و ۳٪ فقط برآورد می‌شود؛ برای نرخ اختصاصی محاسبه نشده است. معافیت‌ها، سقف و حداقل مزد و تفکیک مزایا نیازمند تأیید هستند. ۴٪ مشاغل سخت در بدهی ماهانه منظور نشده است. این گزارش داخلی جایگزین فایل دیسک قابل ارسال به تأمین اجتماعی نیست."
             val lay=paragraph(notice,BODY_WIDTH-24f,11f,0xff90572c.toInt())
             val h=lay.height.toFloat()+23f
             ensure(h+13f)

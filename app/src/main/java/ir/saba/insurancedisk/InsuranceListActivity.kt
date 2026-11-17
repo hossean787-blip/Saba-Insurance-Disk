@@ -359,13 +359,17 @@ class InsuranceListActivity : Activity() {
     }
     private fun showDetails(id:Long){
         details.removeAllViews()
+        var workshopRate=0.0
+        var selectedYear=0
         store.readableDatabase.rawQuery(
-            """SELECT w.code,w.contract_row,w.name,w.employer,w.address,l.year,l.month,l.list_number
+            """SELECT w.code,w.contract_row,w.name,w.employer,w.address,l.year,l.month,l.list_number,w.insurance_rate
                 FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id
                 WHERE l.id=?""",
             arrayOf(id.toString())
         ).use{c->
             if(!c.moveToFirst())return
+            selectedYear=c.getInt(5)
+            workshopRate=c.getDouble(8)
             group("اطلاعات کارگاه و دوره",listOf(
                 "کد کارگاه" to c.getString(0),
                 "ردیف پیمان" to c.getString(1),
@@ -378,6 +382,8 @@ class InsuranceListActivity : Activity() {
         }
         try{
             var people=0L;var days=0L;var daily=0L;var monthly=0L;var benefits=0L
+            val subjectBases=mutableListOf<Long>()
+            val wageWarnings=mutableListOf<String>()
             store.readableDatabase.rawQuery(
                 "SELECT days,daily_wage,benefits FROM insurance_list_items WHERE list_id=?",
                 arrayOf(id.toString())
@@ -385,8 +391,12 @@ class InsuranceListActivity : Activity() {
                 people=Math.addExact(people,1L)
                 days=Math.addExact(days,c.getLong(0))
                 daily=Math.addExact(daily,c.getLong(1))
-                monthly=Math.addExact(monthly,Math.multiplyExact(c.getLong(0),c.getLong(1)))
+                val wage=Math.multiplyExact(c.getLong(0),c.getLong(1))
+                monthly=Math.addExact(monthly,wage)
                 benefits=Math.addExact(benefits,c.getLong(2))
+                subjectBases.add(Math.addExact(wage,c.getLong(2)))
+                InsurancePremiumMath.wageWarning(selectedYear,c.getLong(1))
+                    ?.let { if(!wageWarnings.contains(it))wageWarnings.add(it) }
             }}
             val total=Math.addExact(monthly,benefits)
             group("خلاصه محاسبات خودکار — فقط خواندنی",listOf(
@@ -397,18 +407,40 @@ class InsuranceListActivity : Activity() {
                 "جمع مزایای مشمول" to "${amount(benefits)} ریال",
                 "جمع دستمزد و مزایای مشمول" to "${amount(total)} ریال"
             ))
-            group("حق بیمه و اقلام تکمیلی",listOf(
-                "مزایای غیرمشمول" to "محاسبه‌نشده",
-                "پایه سنواتی" to "محاسبه‌نشده",
-                "حق تأهل" to "محاسبه‌نشده",
-                "سهم بیمه‌شده" to "محاسبه‌نشده",
-                "سهم کارفرما" to "محاسبه‌نشده",
-                "بیمه بیکاری" to "محاسبه‌نشده",
-                "۴٪ سخت و زیان‌آور" to "محاسبه‌نشده"
+            if(InsurancePremiumMath.isOrdinaryRate(workshopRate)){
+                val premium=InsurancePremiumMath.estimate(subjectBases)
+                group("برآورد حق بیمه عادی (۳۰٪)",listOf(
+                    "مبنای مشمول ثبت‌شده" to "${amount(premium.base)} ریال",
+                    "سهم بیمه‌شده (۷٪)" to "${amount(premium.insured)} ریال",
+                    "سهم کارفرما (۲۰٪)" to "${amount(premium.employer)} ریال",
+                    "بیمه بیکاری (۳٪)" to "${amount(premium.unemployment)} ریال",
+                    "جمع پرداختی کارفرما (۲۳٪)" to "${amount(premium.employerWithUnemployment)} ریال",
+                    "جمع کل برآورد حق بیمه" to "${amount(premium.total)} ریال"
+                ))
+            }else{
+                group("حق بیمه نیازمند بررسی",listOf(
+                    "نرخ اختصاصی کارگاه" to "${workshopRate}٪",
+                    "سهم بیمه‌شده / کارفرما / بیکاری" to "تفکیک‌نشده"
+                ))
+            }
+            group("اقلام تکمیلی",listOf(
+                "مزایای غیرمشمول" to "در فرم فعلی تفکیک نشده",
+                "پایه سنواتی" to "در فرم فعلی تفکیک نشده",
+                "حق تأهل" to "در فرم فعلی تفکیک نشده",
+                "۴٪ مشاغل سخت" to "بدهی جداگانه؛ در جمع ماهانه لحاظ نشده"
             ))
-            details.addView(label(
-                "تا تکمیل قواعد معتبر دوره و تفکیک مزایا، حق بیمه محاسبه نمی‌شود.",
-                12f,Color.rgb(151,88,37)).apply{setPadding(dp(7),dp(13),dp(7),dp(13))})
+            val note=if(InsurancePremiumMath.isOrdinaryRate(workshopRate))
+                "این مبالغ برآورد نرخ عادی‌اند؛ مزایای ثبت‌شده همگی مشمول فرض شده‌اند. معافیت، سقف مزد، وضعیت شغلی و تأیید شعبه باید بررسی شود. خروجی دیسک هنوز تولید نشده است."
+            else
+                "برای نرخ‌های اختصاصی، معافیت‌ها یا استثناها نمی‌توان سهم‌های قانونی را با فرض ۷/۲۰/۳ محاسبه کرد."
+            details.addView(label(note,12f,Color.rgb(151,88,37)).apply{
+                setPadding(dp(7),dp(13),dp(7),dp(13))
+            })
+            wageWarnings.forEach{warning->
+                details.addView(label("⚠ $warning",12f,Color.rgb(166,55,45)).apply{
+                    setPadding(dp(7),dp(5),dp(7),dp(5))
+                })
+            }
         }catch(ex:ArithmeticException){
             details.addView(label("خطای سرریز محاسبات؛ ریزکارکرد را بررسی کنید.",
                 13f,Color.rgb(166,55,45)))

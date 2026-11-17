@@ -270,18 +270,24 @@ open class InsuranceReportActivity : Activity() {
     private fun renderSummary(data:InsuranceReportData) {
         summaryPanel.removeAllViews()
         summaryPanel.addView(headline("خلاصه گزارش — فقط خواندنی"))
-        summaryPanel.addView(rowCard(listOf(
+        val values=mutableListOf(
             "کارگاه" to data.header.workshopName,
             "کد کارگاه / ردیف پیمان" to "${data.header.workshopCode} / ${data.header.contractRow}",
             "تعداد کارکنان" to data.totals.employeeCount.toString(),
             "جمع روزها" to data.totals.days.toString(),
             "دستمزد ماهانه" to "${format(data.totals.wages)} ریال",
             "مزایای مشمول" to "${format(data.totals.benefits)} ریال",
-            "جمع مشمول" to "${format(data.totals.total)} ریال",
-            "حق بیمه" to "محاسبه‌نشده"
-        )))
+            "جمع مشمول" to "${format(data.totals.total)} ریال"
+        )
+        data.premium?.let { p->
+            values.add("سهم بیمه‌شده (۷٪)" to "${format(p.insured)} ریال")
+            values.add("سهم کارفرما (۲۰٪)" to "${format(p.employer)} ریال")
+            values.add("بیمه بیکاری (۳٪)" to "${format(p.unemployment)} ریال")
+            values.add("جمع کل حق بیمه برآوردی" to "${format(p.total)} ریال")
+        } ?: values.add("حق بیمه نرخ اختصاصی" to "نیازمند بررسی")
+        summaryPanel.addView(rowCard(values))
         summaryPanel.addView(label(
-            "این PDF گزارش داخلی است؛ سهم‌های بیمه و خروجی دیسک در این نسخه محاسبه یا تولید نمی‌شوند.",
+            "حق بیمه نرخ عادی برآوردی و مشروط به بررسی معافیت‌ها، مزایا و سقف مزد است. ۴٪ سختی کار در جمع ماهانه نیست. این گزارش جایگزین فایل دیسک قابل ارسال نیست.",
             12f,Color.rgb(151,86,37)
         ).apply {setPadding(dp(8),dp(12),dp(8),dp(8))})
         if(data.warnings.isNotEmpty()){

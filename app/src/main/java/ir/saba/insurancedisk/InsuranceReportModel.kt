@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 internal data class InsuranceReportHeader(
     val listId:Long, val workshopId:Long, val workshopName:String, val workshopCode:String,
     val contractRow:String, val employer:String, val address:String,
-    val year:Int, val month:Int, val listNumber:Int
+    val year:Int, val month:Int, val listNumber:Int, val insuranceRate:Double=0.0
 )
 
 internal data class InsuranceReportPerson(
@@ -30,7 +30,8 @@ internal data class InsuranceReportData(
     val header:InsuranceReportHeader,
     val people:List<InsuranceReportPerson>,
     val totals:InsuranceReportTotals,
-    val warnings:List<String>
+    val warnings:List<String>,
+    val premium:InsurancePremiumTotals?=null
 )
 
 internal object InsuranceReportSelection {
@@ -61,6 +62,8 @@ internal object InsuranceReportMath {
         val problems=mutableListOf<String>()
         if(people.isEmpty())problems.add("برای این لیست هنوز ریزکارکردی ثبت نشده است.")
         if(header.month !in 1..12)problems.add("ماه دوره نامعتبر است.")
+        if(!InsurancePremiumMath.isOrdinaryRate(header.insuranceRate))
+            problems.add("این کارگاه نرخ اختصاصی دارد؛ تفکیک سهم بیمه نیازمند بررسی است.")
         val maxDays=WorkDetailRules.maxDays(header.month)
         for((index,person) in people.withIndex()) {
             val row=index+1
@@ -74,6 +77,9 @@ internal object InsuranceReportMath {
                 person.dailyWage<0L || person.benefits<0L) {
                 problems.add("ردیف $row: روز کارکرد یا مبلغ نامعتبر است.")
             }
+            InsurancePremiumMath.wageWarning(header.year,person.dailyWage)?.let{
+                problems.add("ردیف $row: $it")
+            }
         }
         return problems
     }
@@ -84,7 +90,7 @@ internal class InsuranceReportRepository(private val database:SQLiteDatabase) {
     fun load(listId:Long):InsuranceReportData {
         val header=database.rawQuery(
             """SELECT l.id,l.workshop_id,w.name,w.code,w.contract_row,w.employer,w.address,
-                      l.year,l.month,l.list_number
+                      l.year,l.month,l.list_number,w.insurance_rate
                FROM insurance_lists l JOIN workshops w ON w.id=l.workshop_id
                WHERE l.id=?""",arrayOf(listId.toString())
         ).use { c ->
@@ -92,7 +98,7 @@ internal class InsuranceReportRepository(private val database:SQLiteDatabase) {
             InsuranceReportHeader(
                 c.getLong(0),c.getLong(1),c.getString(2) ?: "",c.getString(3) ?: "",
                 c.getString(4) ?: "",c.getString(5) ?: "",c.getString(6) ?: "",
-                c.getInt(7),c.getInt(8),c.getInt(9)
+                c.getInt(7),c.getInt(8),c.getInt(9),c.getDouble(10)
             )
         }
         val people=mutableListOf<InsuranceReportPerson>()
@@ -117,7 +123,10 @@ internal class InsuranceReportRepository(private val database:SQLiteDatabase) {
         }
         return InsuranceReportData(
             header,people,InsuranceReportMath.sum(people),
-            InsuranceReportMath.warnings(header,people)
+            InsuranceReportMath.warnings(header,people),
+            if(InsurancePremiumMath.isOrdinaryRate(header.insuranceRate))
+                InsurancePremiumMath.estimate(people.map { InsuranceReportMath.monthlyTotal(it) })
+            else null
         )
     }
 }
